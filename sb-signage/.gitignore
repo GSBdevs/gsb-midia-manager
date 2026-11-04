@@ -4,3 +4,4 @@ dist/
 backups/
 *.log
 .env
+docs/
