@@ -1,0 +1,32 @@
+{
+  "name": "sb-signage",
+  "version": "1.0.0",
+  "description": "Plataforma de digital signage — painel CMS + players pareados por código, sync em tempo real e cache offline.",
+  "main": "server/index.js",
+  "bin": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "build:exe": "pkg . --targets node22-win-x64 --output dist/sb-signage.exe && node scripts/copy-ffmpeg.js"
+  },
+  "pkg": {
+    "assets": [
+      "public/**/*",
+      "node_modules/socket.io/client-dist/*"
+    ]
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ffmpeg-static": "^5.2.0",
+    "ffprobe-static": "^3.1.0",
+    "fluent-ffmpeg": "^2.1.3",
+    "multer": "^1.4.5-lts.1",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.21.0"
+  }
+}

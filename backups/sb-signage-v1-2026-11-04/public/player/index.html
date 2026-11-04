@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SB Signage — Player</title>
+  <style>
+    :root { --accent: #ffd60a; --footer-h: 0px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #000; color: #e9e9ec; overflow: hidden; cursor: none;
+      font: 16px/1.5 'Segoe UI', system-ui, sans-serif; }
+
+    /* palco: recebe rotação (orientação da tela) e contém camadas + rodapé + emergência */
+    #stage { position: fixed; inset: 0; background: #000; }
+
+    /* camadas de exibição (crossfade) */
+    .layer { position: absolute; inset: 0 0 var(--footer-h) 0; opacity: 0; transition: opacity .5s ease;
+      display: grid; place-items: center; background: #000; will-change: opacity; transform: translateZ(0); }
+    .layer.visible { opacity: 1; }
+    .layer img, .layer video { width: 100%; height: 100%; object-fit: contain; }
+    .layer iframe { width: 100%; height: 100%; border: 0; background: #fff; }
+
+    /* rodapé multi-zona: ticker + relógio */
+    #footer {
+      position: absolute; left: 0; right: 0; bottom: 0; height: var(--footer-h);
+      display: none; align-items: center; gap: 16px; overflow: hidden;
+      background: rgba(8, 8, 10, .92); border-top: 2px solid var(--accent);
+      padding: 0 18px; z-index: 5;
+    }
+    #footer.show { display: flex; }
+    #ticker-wrap { flex: 1; overflow: hidden; white-space: nowrap; }
+    #ticker { display: inline-block; white-space: nowrap; }
+    #ticker span { display: inline-block; padding-right: 80px; font-size: calc(var(--footer-h) * .42); font-weight: 600; }
+    #ticker.scroll { animation: ticker-scroll var(--ticker-s, 30s) linear infinite; }
+    @keyframes ticker-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    #clock { font-size: calc(var(--footer-h) * .5); font-weight: 800; color: var(--accent);
+      font-variant-numeric: tabular-nums; flex-shrink: 0; display: none; }
+    #clock.show { display: block; }
+
+    /* emergência: cobre o palco inteiro */
+    #emergency-view { position: absolute; inset: 0; z-index: 15; display: none; background: #000; }
+    #emergency-view.show { display: grid; place-items: center; }
+    #emergency-view img, #emergency-view video { width: 100%; height: 100%; object-fit: contain; }
+    #emergency-view iframe { width: 100%; height: 100%; border: 0; background: #fff; }
+    .emergency-message {
+      padding: 6vh 6vw; text-align: center; font-size: 6vw; font-weight: 800; line-height: 1.25;
+      color: #fff; background: #b00020; width: 100%; height: 100%;
+      display: grid; place-items: center; text-transform: uppercase; letter-spacing: .05em;
+    }
+
+    /* tela "desligada" por agenda de energia */
+    #power-off { position: fixed; inset: 0; z-index: 40; background: #000; display: none; }
+    #power-off.show { display: block; }
+
+    /* pareamento / standby */
+    .screen { position: fixed; inset: 0; display: none; place-items: center; text-align: center; background: #0d0d0f; z-index: 10; }
+    .screen.show { display: grid; }
+    .brand { font-size: 22px; letter-spacing: 1px; color: #9a9aa2; margin-bottom: 28px; }
+    .brand b { color: var(--accent); }
+    .code {
+      font-size: 12vw; font-weight: 800; letter-spacing: 1.2vw; color: var(--accent);
+      font-family: 'Consolas', monospace; text-shadow: 0 0 40px rgba(255, 214, 10, .25);
+    }
+    .hint { color: #9a9aa2; margin-top: 24px; font-size: 1.4vw; }
+    .standby-title { font-size: 3vw; font-weight: 700; }
+
+    /* overlays */
+    #identify {
+      position: fixed; inset: auto 0 0 0; z-index: 50; display: none;
+      background: var(--accent); color: #111; font-size: 3vw; font-weight: 800;
+      text-align: center; padding: 2vh 0;
+    }
+    #status-badge {
+      position: fixed; top: 12px; right: 12px; z-index: 50; display: none;
+      background: rgba(0,0,0,.7); border: 1px solid #ff5c5c; color: #ff5c5c;
+      border-radius: 8px; padding: 4px 12px; font-size: 13px;
+    }
+    #cache-progress {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 50; display: none;
+      background: rgba(0,0,0,.75); border: 1px solid #333; color: #9a9aa2;
+      border-radius: 20px; padding: 6px 18px; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <div id="layerA" class="layer"></div>
+    <div id="layerB" class="layer"></div>
+    <div id="footer">
+      <div id="ticker-wrap"><div id="ticker"><span></span><span></span></div></div>
+      <div id="clock"></div>
+    </div>
+    <div id="emergency-view"></div>
+  </div>
+
+  <div id="power-off"></div>
+
+  <div id="pairing" class="screen">
+    <div>
+      <div class="brand">▶ SB <b>Signage</b></div>
+      <div id="pair-code" class="code">······</div>
+      <p class="hint">Acesse o painel e vincule esta tela com o código acima.</p>
+    </div>
+  </div>
+
+  <div id="standby" class="screen">
+    <div>
+      <div class="brand">▶ SB <b>Signage</b></div>
+      <p class="standby-title" id="standby-name"></p>
+      <p class="hint">Tela pareada — aguardando conteúdo…</p>
+    </div>
+  </div>
+
+  <div id="identify"></div>
+  <div id="status-badge">⚠ offline — exibindo cache</div>
+  <div id="cache-progress"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="vendor/hls.min.js"></script>
+  <script src="player.js"></script>
+</body>
+</html>

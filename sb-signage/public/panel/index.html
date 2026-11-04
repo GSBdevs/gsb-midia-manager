@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SB Signage — Painel</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <!-- LOGIN -->
+  <div id="login-view" class="login" hidden>
+    <form id="login-form" class="card login-card">
+      <div class="brand" data-brand></div>
+      <div>
+        <h1>Entrar</h1>
+        <p class="muted">Painel de gerenciamento de telas</p>
+      </div>
+      <label class="field">
+        <span>Senha do administrador</span>
+        <input id="login-password" type="password" autocomplete="current-password" required />
+      </label>
+      <p id="login-error" class="error-text" hidden></p>
+      <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+    </form>
+  </div>
+
+  <!-- APP -->
+  <div id="app" class="app" hidden>
+    <aside class="sidebar" id="sidebar">
+      <div class="brand" data-brand></div>
+      <nav class="nav" id="nav" aria-label="Navegação principal"></nav>
+      <div class="sidebar-footer">
+        <button id="btn-emergency" class="btn btn-emergency btn-block" type="button"></button>
+        <button id="btn-logout" class="btn btn-ghost btn-block" type="button" style="justify-content:flex-start"></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div id="banners"></div>
+      <header class="topbar">
+        <button class="btn btn-ghost btn-icon menu-toggle" id="menu-toggle" type="button" aria-label="Abrir menu"></button>
+        <div class="title">
+          <h1 id="view-title"></h1>
+          <p id="view-subtitle"></p>
+        </div>
+        <div class="actions" id="view-actions"></div>
+        <button class="btn btn-ghost btn-icon" id="theme-toggle" type="button" aria-label="Alternar tema"></button>
+      </header>
+      <main class="content" id="view" tabindex="-1"></main>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

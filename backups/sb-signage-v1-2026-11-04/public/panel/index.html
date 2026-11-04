@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SB Signage — Painel</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- LOGIN -->
+  <div id="login-view" class="login hidden">
+    <form id="login-form" class="login-card">
+      <div class="brand"><span class="brand-mark">▶</span> SB <b>Signage</b></div>
+      <p class="muted">Painel de gerenciamento de telas</p>
+      <input id="login-password" type="password" placeholder="Senha do administrador" autocomplete="current-password" />
+      <button type="submit" class="btn btn-primary">Entrar</button>
+      <p id="login-error" class="error hidden">Senha incorreta.</p>
+    </form>
+  </div>
+
+  <!-- APP -->
+  <div id="app-view" class="app hidden">
+    <div id="emergency-banner" class="emergency-banner hidden">
+      <span>🚨 <b>EMERGÊNCIA ATIVA</b> — <span id="emergency-desc"></span></span>
+      <button id="btn-emergency-off" class="btn btn-sm">Desativar</button>
+    </div>
+
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">▶</span> SB <b>Signage</b></div>
+      <nav>
+        <a href="#screens" data-nav="screens" class="nav-item"><span>🖥 Telas</span> <span id="nav-online" class="pill"></span></a>
+        <a href="#groups" data-nav="groups" class="nav-item"><span>🗃 Grupos</span></a>
+        <a href="#media" data-nav="media" class="nav-item"><span>🗂 Mídias</span></a>
+        <a href="#playlists" data-nav="playlists" class="nav-item"><span>🎞 Playlists</span></a>
+        <a href="#schedules" data-nav="schedules" class="nav-item"><span>🕑 Agenda</span></a>
+        <a href="#reports" data-nav="reports" class="nav-item"><span>📊 Relatórios</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <button id="btn-emergency" class="btn btn-emergency">🚨 Emergência</button>
+        <button id="logout" class="btn btn-ghost">Sair</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <!-- TELAS -->
+      <section id="view-screens" class="view">
+        <header class="view-header">
+          <h1>Telas</h1>
+          <button id="btn-pair" class="btn btn-primary">+ Parear tela</button>
+        </header>
+        <div id="screens-list" class="cards"></div>
+        <p id="screens-empty" class="empty hidden">Nenhuma tela pareada. Abra <code id="player-url"></code> na TV e clique em <b>Parear tela</b>.</p>
+      </section>
+
+      <!-- GRUPOS -->
+      <section id="view-groups" class="view">
+        <header class="view-header">
+          <h1>Grupos de telas</h1>
+          <button id="btn-new-group" class="btn btn-primary">+ Novo grupo</button>
+        </header>
+        <p class="muted small view-hint">Telas de um grupo herdam a playlist do grupo quando não têm playlist própria nem regra de agenda ativa.</p>
+        <div id="groups-list" class="cards"></div>
+        <p id="groups-empty" class="empty hidden">Crie grupos para gerenciar playlists de várias telas de uma vez (ex.: "Recepção", "Vitrines").</p>
+      </section>
+
+      <!-- MÍDIAS -->
+      <section id="view-media" class="view">
+        <header class="view-header">
+          <h1>Mídias</h1>
+          <button id="btn-webpage" class="btn">🌐 + Página web</button>
+        </header>
+        <div id="dropzone" class="dropzone">
+          <input id="file-input" type="file" multiple hidden
+            accept=".jpg,.jpeg,.png,.gif,.webp,.avif,.bmp,.svg,.mp4,.m4v,.webm,.mov,.mkv,.avi,.wmv,.flv,.mpg,.mpeg,.3gp,.vob,.ts,.mts,.m2ts,.ogv,.rm,.rmvb" />
+          <p><b>Arraste arquivos aqui</b> ou clique para enviar</p>
+          <p class="muted small">Imagens: JPG · PNG · GIF · WEBP · AVIF · BMP · SVG &nbsp;|&nbsp; Vídeos: MP4 · WEBM · MOV · MKV · AVI · WMV · FLV · MPG · 3GP · VOB · TS e mais — formatos não-web são convertidos automaticamente.</p>
+          <div id="upload-progress" class="progress hidden"><div class="progress-bar"></div><span class="progress-label"></span></div>
+        </div>
+        <div id="media-grid" class="media-grid"></div>
+      </section>
+
+      <!-- PLAYLISTS -->
+      <section id="view-playlists" class="view">
+        <header class="view-header">
+          <h1>Playlists</h1>
+          <button id="btn-new-playlist" class="btn btn-primary">+ Nova playlist</button>
+        </header>
+        <div class="playlists-layout">
+          <div id="playlists-list" class="playlists-list"></div>
+          <div id="playlist-editor" class="playlist-editor hidden">
+            <div class="editor-header">
+              <input id="playlist-name" class="input-inline" />
+              <span id="playlist-total" class="muted small"></span>
+              <div>
+                <button id="btn-add-items" class="btn">+ Adicionar mídia</button>
+                <button id="btn-save-playlist" class="btn btn-primary">Salvar</button>
+                <button id="btn-delete-playlist" class="btn btn-danger">Excluir</button>
+              </div>
+            </div>
+            <div id="playlist-items" class="playlist-items"></div>
+            <p class="muted small">Duração aplica-se a imagens e páginas web; vídeos tocam até o fim. Use ▲▼ para reordenar.</p>
+          </div>
+          <p id="playlists-empty" class="empty hidden">Crie uma playlist e adicione mídias a ela.</p>
+        </div>
+      </section>
+
+      <!-- AGENDA -->
+      <section id="view-schedules" class="view">
+        <header class="view-header">
+          <h1>Agenda</h1>
+        </header>
+        <div class="card schedule-form">
+          <h3>Nova regra de exibição</h3>
+          <div class="form-row">
+            <label>Tela <select id="sched-device"></select></label>
+            <label>Playlist <select id="sched-playlist"></select></label>
+            <label>Início <input id="sched-start" type="time" value="08:00" /></label>
+            <label>Fim <input id="sched-end" type="time" value="18:00" /></label>
+            <label>Prioridade <input id="sched-priority" type="number" value="0" min="0" max="99" /></label>
+          </div>
+          <div class="days" id="sched-days">
+            <label><input type="checkbox" value="1" checked />Seg</label>
+            <label><input type="checkbox" value="2" checked />Ter</label>
+            <label><input type="checkbox" value="3" checked />Qua</label>
+            <label><input type="checkbox" value="4" checked />Qui</label>
+            <label><input type="checkbox" value="5" checked />Sex</label>
+            <label><input type="checkbox" value="6" />Sáb</label>
+            <label><input type="checkbox" value="0" />Dom</label>
+          </div>
+          <button id="btn-add-schedule" class="btn btn-primary">Adicionar regra</button>
+          <p class="muted small">Sem regra ativa, a tela exibe sua playlist (ou a do grupo). Janelas podem cruzar a meia-noite (ex.: 22:00 → 06:00).</p>
+        </div>
+        <div id="schedules-list" class="cards"></div>
+      </section>
+
+      <!-- RELATÓRIOS (proof-of-play) -->
+      <section id="view-reports" class="view">
+        <header class="view-header">
+          <h1>Relatórios de exibição</h1>
+          <div class="report-controls">
+            <input id="report-date" type="date" />
+            <button id="btn-report-refresh" class="btn">Atualizar</button>
+            <button id="btn-report-csv" class="btn">⬇ CSV detalhado</button>
+          </div>
+        </header>
+        <p class="muted small view-hint">Cada exibição registrada pelos players (proof-of-play). Útil para comprovar veiculação de anúncios.</p>
+        <div id="report-summary" class="report-summary"></div>
+        <div class="table-wrap">
+          <table id="report-table" class="table">
+            <thead><tr><th>Mídia</th><th>Tela</th><th>Exibições</th><th>Tempo total</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p id="report-empty" class="empty hidden">Sem registros nesta data.</p>
+      </section>
+    </main>
+  </div>
+
+  <!-- DIALOG: parear -->
+  <dialog id="dlg-pair">
+    <form method="dialog" class="dlg">
+      <h3>Parear nova tela</h3>
+      <p class="muted small">Na TV, abra o endereço do player. Um código de 6 caracteres aparecerá na tela.</p>
+      <label>Código exibido na TV <input id="pair-code" maxlength="6" placeholder="ABC123" style="text-transform:uppercase" required /></label>
+      <label>Nome da tela <input id="pair-name" placeholder="Ex.: Recepção" /></label>
+      <p id="pair-error" class="error hidden"></p>
+      <div class="dlg-actions">
+        <button value="cancel" class="btn btn-ghost">Cancelar</button>
+        <button id="pair-confirm" value="default" class="btn btn-primary">Vincular</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- DIALOG: escolher mídia -->
+  <dialog id="dlg-picker">
+    <div class="dlg dlg-wide">
+      <h3>Adicionar mídia à playlist</h3>
+      <div id="picker-grid" class="media-grid picker"></div>
+      <div class="dlg-actions">
+        <button id="picker-cancel" class="btn btn-ghost">Cancelar</button>
+        <button id="picker-confirm" class="btn btn-primary">Adicionar selecionadas</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- DIALOG: página web como mídia -->
+  <dialog id="dlg-webpage">
+    <form method="dialog" class="dlg">
+      <h3>Adicionar página web</h3>
+      <p class="muted small">Dashboards, cardápios, feeds… A tela precisa de internet para exibir. Alguns sites bloqueiam exibição embutida (X-Frame-Options).</p>
+      <label>Nome <input id="webpage-name" placeholder="Ex.: Cardápio digital" /></label>
+      <label>URL <input id="webpage-url" type="url" placeholder="https://…" required /></label>
+      <p id="webpage-error" class="error hidden"></p>
+      <div class="dlg-actions">
+        <button value="cancel" class="btn btn-ghost">Cancelar</button>
+        <button value="default" class="btn btn-primary">Adicionar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- DIALOG: configurações da tela -->
+  <dialog id="dlg-device">
+    <form method="dialog" class="dlg dlg-device">
+      <h3>Configurar tela — <span id="dev-title"></span></h3>
+      <div class="form-grid">
+        <label>Grupo <select id="dev-group"></select></label>
+        <label>Orientação
+          <select id="dev-orientation">
+            <option value="0">Paisagem (0°)</option>
+            <option value="90">Retrato (90°)</option>
+            <option value="180">Invertida (180°)</option>
+            <option value="270">Retrato invertido (270°)</option>
+          </select>
+        </label>
+        <label>Volume <span id="dev-volume-val" class="muted small"></span>
+          <input id="dev-volume" type="range" min="0" max="100" step="5" />
+        </label>
+        <label class="check-row"><input id="dev-muted" type="checkbox" /> Sem som (mudo)</label>
+      </div>
+      <fieldset class="fieldset">
+        <legend>Rodapé (ticker + relógio)</legend>
+        <label>Texto do letreiro <input id="dev-ticker" placeholder="Deixe vazio para ocultar" maxlength="500" /></label>
+        <label class="check-row"><input id="dev-clock" type="checkbox" /> Mostrar relógio</label>
+      </fieldset>
+      <fieldset class="fieldset">
+        <legend>Energia (a tela fica preta fora do horário)</legend>
+        <label class="check-row"><input id="dev-power-enabled" type="checkbox" /> Ativar agenda de energia</label>
+        <div class="form-row">
+          <label>Liga <input id="dev-power-on" type="time" value="08:00" /></label>
+          <label>Desliga <input id="dev-power-off" type="time" value="22:00" /></label>
+        </div>
+        <div class="days" id="dev-power-days">
+          <label><input type="checkbox" value="1" checked />Seg</label>
+          <label><input type="checkbox" value="2" checked />Ter</label>
+          <label><input type="checkbox" value="3" checked />Qua</label>
+          <label><input type="checkbox" value="4" checked />Qui</label>
+          <label><input type="checkbox" value="5" checked />Sex</label>
+          <label><input type="checkbox" value="6" checked />Sáb</label>
+          <label><input type="checkbox" value="0" checked />Dom</label>
+        </div>
+        <p class="muted small">Desligamento real (HDMI-CEC) exige o player Android — veja <code>android-player/</code>.</p>
+      </fieldset>
+      <div class="dlg-actions">
+        <button value="cancel" class="btn btn-ghost">Cancelar</button>
+        <button value="default" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- DIALOG: emergência -->
+  <dialog id="dlg-emergency">
+    <form method="dialog" class="dlg">
+      <h3>🚨 Conteúdo de emergência</h3>
+      <p class="muted small">Substitui imediatamente o conteúdo de <b>todas as telas</b> até ser desativado. Acende telas em janela de energia.</p>
+      <label class="check-row"><input type="radio" name="em-mode" value="message" checked /> Mensagem de texto</label>
+      <textarea id="em-message" rows="3" maxlength="500" placeholder="Ex.: EVACUAR O PRÉDIO PELA SAÍDA LESTE"></textarea>
+      <label class="check-row"><input type="radio" name="em-mode" value="media" /> Mídia existente</label>
+      <select id="em-media"></select>
+      <p id="em-error" class="error hidden"></p>
+      <div class="dlg-actions">
+        <button value="cancel" class="btn btn-ghost">Cancelar</button>
+        <button value="default" class="btn btn-danger-solid">Ativar emergência</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

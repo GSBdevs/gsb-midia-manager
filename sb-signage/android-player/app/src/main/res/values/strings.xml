@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SB Signage</string>
+    <string name="pairing_hint">Acesse o painel e vincule esta tela com o código acima.</string>
+</resources>
