@@ -1,83 +1,129 @@
 package com.gsb.signage
 
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
+import java.io.File
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /** Cliente REST do protocolo SB Signage (mesmo contrato do player web). */
-class SignageApi(private val baseUrl: String) {
+class SignageApi(val baseUrl: String) {
     private val http = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS) // download parado por 30 s é abortado e refeito
         .build()
-    private val json = "application/json".toMediaType()
+    private val jsonType = "application/json".toMediaType()
 
     data class Pairing(val code: String, val token: String)
-    data class Manifest(val version: String, val raw: JSONObject)
 
-    /** Pede um código de pareamento. */
+    /** raw == null significa 304: nada mudou. */
+    class ManifestResponse(val raw: String?, val serverDateMs: Long?)
+
+    class Unauthorized : IOException("tela removida no painel")
+    class PairingExpired : IOException("código expirado")
+    class NoSpace : IOException("sem espaço de armazenamento na tela")
+
+    fun absolute(url: String): String = if (url.startsWith("http")) url else baseUrl + url
+
+    /** Portal cativo ou proxy devolvem HTML com status 200: conta como falha de rede. */
+    private fun json(body: String): JSONObject = try {
+        JSONObject(body)
+    } catch (e: JSONException) {
+        throw IOException("resposta inválida do servidor", e)
+    }
+
+    fun branding(): Branding {
+        http.newCall(Request.Builder().url("$baseUrl/api/branding").build()).execute().use {
+            if (!it.isSuccessful) throw IOException("branding HTTP ${it.code}")
+            return Manifest.parseBranding(json(it.body!!.string()))
+        }
+    }
+
     fun requestPairing(): Pairing {
-        val res = http.newCall(
-            Request.Builder().url("$baseUrl/api/pair/request").post("".toRequestBody(json)).build()
-        ).execute()
-        res.use {
-            val body = JSONObject(it.body!!.string())
-            return Pairing(body.getString("code"), body.getString("token"))
+        val req = Request.Builder().url("$baseUrl/api/pair/request").post("".toRequestBody(jsonType)).build()
+        http.newCall(req).execute().use {
+            if (!it.isSuccessful) throw IOException("pareamento HTTP ${it.code}")
+            val body = json(it.body!!.string())
+            try {
+                return Pairing(body.getString("code"), body.getString("token"))
+            } catch (e: JSONException) {
+                throw IOException("resposta inválida do servidor", e)
+            }
         }
     }
 
-    /** true quando o painel reivindicou o código (token virou credencial). */
+    /** true quando o painel vinculou o código (o token vira a credencial da tela). */
     fun pairingClaimed(token: String): Boolean {
-        val res = http.newCall(
-            Request.Builder().url("$baseUrl/api/pair/status")
-                .header("X-Device-Token", token).build()
-        ).execute()
-        res.use {
+        val req = Request.Builder().url("$baseUrl/api/pair/status")
+            .header("X-Device-Token", token).build()
+        http.newCall(req).execute().use {
             if (it.code == 404) throw PairingExpired()
-            return it.isSuccessful && JSONObject(it.body!!.string()).optBoolean("claimed")
+            return it.isSuccessful && json(it.body!!.string()).optBoolean("claimed")
         }
     }
 
-    /** Busca o manifesto; retorna null em 304 (nada mudou). Lança Unauthorized em 401. */
-    fun fetchManifest(token: String, etag: String?): Manifest? {
+    fun fetchManifest(token: String, version: String?): ManifestResponse {
         val req = Request.Builder().url("$baseUrl/api/player/manifest")
             .header("X-Device-Token", token)
-        if (etag != null) req.header("If-None-Match", etag)
-        val res = http.newCall(req.build()).execute()
-        res.use {
-            when {
-                it.code == 304 -> return null
+        if (version != null) req.header("If-None-Match", "\"$version\"")
+        http.newCall(req.build()).execute().use {
+            val date = it.headers.getDate("Date")?.time
+            return when {
+                it.code == 304 -> ManifestResponse(null, date)
                 it.code == 401 -> throw Unauthorized()
-                !it.isSuccessful -> throw RuntimeException("manifest HTTP ${it.code}")
+                !it.isSuccessful -> throw IOException("manifesto HTTP ${it.code}")
+                else -> ManifestResponse(it.body!!.string(), date)
             }
-            val body = JSONObject(it.body!!.string())
-            return Manifest(body.getString("version"), body)
         }
     }
 
-    /** Envia lote de proof-of-play. */
     fun sendLogs(token: String, events: JSONArray) {
-        val body = JSONObject().put("events", events).toString().toRequestBody(json)
-        http.newCall(
-            Request.Builder().url("$baseUrl/api/player/logs")
-                .header("X-Device-Token", token).post(body).build()
-        ).execute().close()
-    }
-
-    /** Baixa uma mídia para o arquivo destino (usado pelo MediaCache). */
-    fun download(url: String, dest: java.io.File) {
-        val full = if (url.startsWith("http")) url else "$baseUrl$url"
-        val res = http.newCall(Request.Builder().url(full).build()).execute()
-        res.use {
-            if (!it.isSuccessful) throw RuntimeException("download HTTP ${it.code}")
-            dest.outputStream().use { out -> it.body!!.byteStream().copyTo(out) }
+        val body = JSONObject().put("events", events).toString().toRequestBody(jsonType)
+        val req = Request.Builder().url("$baseUrl/api/player/logs")
+            .header("X-Device-Token", token).post(body).build()
+        http.newCall(req).execute().use {
+            if (!it.isSuccessful) throw IOException("logs HTTP ${it.code}")
         }
     }
 
-    class Unauthorized : RuntimeException()
-    class PairingExpired : RuntimeException()
+    /** Baixa para `dest`, informando o progresso (0..1, ou null sem tamanho conhecido). */
+    suspend fun download(url: String, dest: File, onProgress: (Float?) -> Unit = {}) {
+        http.newCall(Request.Builder().url(absolute(url)).build()).execute().use { res ->
+            if (!res.isSuccessful) throw IOException("HTTP ${res.code}")
+            val body = res.body!!
+            val total = body.contentLength()
+            val free = dest.parentFile?.usableSpace ?: Long.MAX_VALUE
+            if (total > 0 && free < total + MIN_FREE_BYTES) throw NoSpace()
+
+            dest.outputStream().use { out ->
+                val input = body.byteStream()
+                val buffer = ByteArray(64 * 1024)
+                var received = 0L
+                var lastReport = 0L
+                while (true) {
+                    currentCoroutineContext().ensureActive() // manifesto novo cancela o download
+                    val read = input.read(buffer)
+                    if (read < 0) break
+                    out.write(buffer, 0, read)
+                    received += read
+                    if (received - lastReport >= REPORT_EVERY_BYTES) {
+                        lastReport = received
+                        onProgress(if (total > 0) received.toFloat() / total else null)
+                    }
+                }
+            }
+        }
+    }
+
+    private companion object {
+        const val MIN_FREE_BYTES = 50L * 1024 * 1024  // o sistema da TV box também precisa de disco
+        const val REPORT_EVERY_BYTES = 512L * 1024
+    }
 }

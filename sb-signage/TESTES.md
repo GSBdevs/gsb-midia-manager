@@ -1,7 +1,7 @@
 # Guia de testes — SB Signage 2.0
 
-Roteiro para validar o sistema na prática, do zero, numa máquina Windows. Cada passo diz o
-que fazer e o que deve acontecer. Tempo total: ~30 minutos.
+Roteiro completo, recurso por recurso. Para o primeiro teste com um notebook servindo de tela,
+comece por [TESTE-RAPIDO.md](TESTE-RAPIDO.md) (~15 minutos).
 
 ## 0. Testes automatizados (2 minutos)
 
@@ -113,6 +113,49 @@ npm run build:exe
 **Esperado:** mesmo comportamento do `npm start`. A pasta `dist/` contém `sb-signage.exe`,
 `ffmpeg.exe`, `ffprobe.exe` e as licenças — distribua a pasta inteira.
 
+## 12. App nativo Android (sem navegador)
+
+Os testes automáticos do app não precisam de aparelho:
+
+```powershell
+cd android-player
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+.\gradlew.bat testDebugUnitTest assembleDebug
+```
+
+**Esperado:** `BUILD SUCCESSFUL` (12 testes). No aparelho, com o servidor rodando (`npm start`):
+
+```powershell
+adb connect IP_DO_APARELHO:5555
+adb install -r dist\SBSignagePlayer-2.0.0-debug.apk
+adb shell appops set com.gsb.signage SYSTEM_ALERT_WINDOW allow
+adb shell appops write-settings
+```
+
+| Passo | Esperado |
+|---|---|
+| Abrir o app e digitar um endereço errado | "Não foi possível conectar a …" |
+| Digitar o endereço do terminal, sem `/player` (ex.: `192.168.25.177:4000`) | Código de 6 caracteres com a marca do painel |
+| Painel → **Telas → Parear tela** e escolher a playlist | Conteúdo em segundos; card **online** com "Exibindo …" |
+| Playlist com imagem → vídeo → imagem, ver dois ciclos | Sequência completa; o vídeo vai até o fim |
+| ⚙ volume, letreiro e relógio | Aplica sem recomeçar; relógio no fuso do servidor |
+| ⚙ Orientação 90° (totem vertical: testar 90° e 270°) | Vídeo e imagem giram e ocupam a tela |
+| Emergência → Ativar / Desativar | Na tela em segundos / volta à programação |
+| ⚙ Agenda de energia fora do horário | Tela preta; emergência acende mesmo assim |
+| Card → menu → Identificar, Recarregar, Limpar cache | Nome na tela por 8 s / reinicia / baixa tudo de novo |
+| **Desligar o Wi-Fi, fechar o app e abrir de novo** | **Exibe do cache**, sem tela preta |
+| Religar o Wi-Fi | Em até 1 minuto: online, com as exibições offline em Relatórios |
+| Parar o servidor e subir de novo | TV não para; card volta a online em segundos |
+| Desligar e ligar o aparelho | App abre sozinho (pode levar ~30 s depois do boot) |
+| Remover a tela no painel | App volta ao código e apaga a mídia local |
+
+**Só em aparelho real** (o emulador não responde): imagem fluida em 1080p, letreiro sem
+engasgo, som na saída HDMI, e 24 horas tocando sem parar. Se puder, acompanhe a memória:
+
+```powershell
+adb shell dumpsys meminfo com.gsb.signage
+```
+
 ## Se algo der errado
 
 | Sintoma | Causa provável |
@@ -122,9 +165,15 @@ npm run build:exe
 | "armazenamento quase cheio" | Playlist maior que o espaço da TV — reduza itens ou use vídeos mais curtos |
 | Vídeo com som não toca na TV | Navegador bloqueia autoplay com som: use Fully Kiosk Browser (Android) ou `chrome --autoplay-policy=no-user-gesture-required` |
 | Agenda em horário errado | Confira `SIGNAGE_TZ` (Configurações → Sistema mostra o fuso em uso) |
+| App não conecta ao servidor | Firewall do Windows bloqueando a porta 4000, ou aparelho em outra rede |
+| App não abre sozinho ao ligar | Falta a permissão de sobreposição; rode os dois comandos `appops` da seção 12 |
+| Vídeo não toca no app | Veja o motivo: `adb logcat -s SBPlayer SBPlayback` |
 
 ## Não verificado automaticamente
 
 - O **gesto** de arrastar na playlist foi validado pela lógica de reordenação, não com mouse
   real (o ambiente de testes estava sem tela visível) — confira no passo 5.
-- O **player Android** em `android-player/` é um esqueleto e nunca rodou em aparelho.
+- O **app Android** foi validado em emulador (Android 17), não em aparelho real. A lista completa
+  do que falta está em `android-player/README.md`.
+- O **app Windows** foi validado nesta máquina (janela, app empacotado e download do instalador),
+  ainda não instalado em outro computador nem testado o início com o Windows.

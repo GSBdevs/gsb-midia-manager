@@ -41,6 +41,8 @@ function loadConfig(env = process.env) {
     port: int(env.PORT, 4000, { min: 0, max: 65535 }),
     adminPassword: env.ADMIN_PASSWORD || 'admin',
     dataDir: env.DATA_DIR || path.join(baseDir, 'data'),
+    // instaladores dos players (ex.: SBSignagePlayer-Setup.exe), baixados pelas telas em /downloads
+    downloadsDir: env.DOWNLOADS_DIR || path.join(baseDir, 'downloads'),
     maxUploadMB: int(env.MAX_UPLOAD_MB, 2048, { min: 1 }),
     // CDN: prefixo absoluto para /m e /hls no manifesto (ex.: https://cdn.seudominio.com)
     mediaBaseUrl: (env.MEDIA_BASE_URL || '').replace(/\/+$/, ''),

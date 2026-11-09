@@ -1,0 +1,49 @@
+{
+  "name": "sb-signage-player",
+  "productName": "SB Signage Player",
+  "version": "2.0.0",
+  "description": "Player do SB Signage para Windows: tela cheia, sem navegador, com cache offline.",
+  "main": "main.cjs",
+  "private": true,
+  "scripts": {
+    "prepare-app": "node scripts/prepare.cjs",
+    "start": "npm run prepare-app && electron . --windowed",
+    "test": "npm run prepare-app && node --test \"test/*.test.cjs\"",
+    "dist": "npm run prepare-app && electron-builder --win && node scripts/publish.cjs"
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.gsb.signage.player",
+    "productName": "SB Signage Player",
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "local-server.cjs",
+      "setup.html",
+      "setup.js",
+      "app/**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "artifactName": "SBSignagePlayer-Setup-${version}.${ext}"
+    }
+  }
+}

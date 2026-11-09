@@ -9,15 +9,20 @@ android {
 
     defaultConfig {
         applicationId = "com.gsb.signage"
-        minSdk = 24          // Android 7 — cobre TV boxes antigos
+        minSdk = 24          // Android 7: cobre TV boxes antigos
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
-        // Ajuste para o endereço do seu servidor (VPS, túnel ou IP fixo na LAN)
-        buildConfigField("String", "SERVER_URL", "\"http://192.168.0.10:4000\"")
+        versionCode = 2
+        versionName = "2.0.0"
+        // Vazio = o app pergunta o endereço na primeira execução.
+        // Para entregar já configurado: ./gradlew assembleRelease -PserverUrl=https://telas.cliente.com.br
+        val serverUrl = (project.findProperty("serverUrl") as String?) ?: ""
+        buildConfigField("String", "DEFAULT_SERVER", "\"$serverUrl\"")
     }
 
-    buildFeatures { buildConfig = true }
+    buildFeatures {
+        buildConfig = true
+        viewBinding = true
+    }
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -37,5 +42,10 @@ dependencies {
     implementation("androidx.media3:media3-ui:1.4.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
-    implementation("org.json:json:20240303")
+    implementation("io.socket:socket.io-client:2.1.1") {
+        exclude(group = "org.json", module = "json") // o Android já traz org.json
+    }
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }

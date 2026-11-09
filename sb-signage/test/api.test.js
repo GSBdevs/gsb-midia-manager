@@ -200,6 +200,26 @@ test('mídia: nomes, formatos e segurança', async (t) => {
   });
 });
 
+test('instaladores dos players são baixados em /downloads', async (t) => {
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const downloadsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-downloads-'));
+  fs.writeFileSync(path.join(downloadsDir, 'Player-Setup.exe'), 'MZ-teste');
+  const s = await startServer({ downloadsDir });
+  t.after(async () => {
+    await s.close();
+    fs.rmSync(downloadsDir, { recursive: true, force: true });
+  });
+  const ok = await s.call('/downloads/Player-Setup.exe');
+  assert.equal(ok.status, 200);
+  assert.equal(ok.text, 'MZ-teste');
+  assert.match(ok.headers.get('content-disposition'), /attachment/);
+  assert.equal((await s.call('/downloads/')).status, 404, 'sem listagem da pasta');
+  const escape = await s.call('/downloads/..%2Fdata.json');
+  assert.ok([403, 404].includes(escape.status), `fora da pasta: ${escape.status}`);
+});
+
 test('dados reais da v1 são migrados sem perder telas nem sessões ativas', async () => {
   const seed = {
     devices: [{ id: 'd1', name: 'TV antiga', token: 'tok-antigo', playlistId: null }],

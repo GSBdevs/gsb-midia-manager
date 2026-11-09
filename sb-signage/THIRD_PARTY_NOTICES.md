@@ -32,6 +32,22 @@ de hardware.
 | ffmpeg-static (instalador do binário) | GPL-3.0-or-later |
 | ffprobe-static (instalador do binário) | MIT |
 
+## App Windows (`windows-player/`)
+
+| Pacote | Licença |
+|---|---|
+| Electron (inclui Chromium e Node.js) | MIT; o Chromium traz licenças próprias, listadas em `LICENSES.chromium.html` dentro da instalação |
+| Player web e Socket.IO client (os mesmos do navegador) | ver abaixo |
+
+## App Android (`android-player/`)
+
+| Pacote | Licença |
+|---|---|
+| AndroidX (core, appcompat) e Media3 (ExoPlayer) | Apache-2.0 |
+| OkHttp | Apache-2.0 |
+| kotlinx.coroutines e Kotlin | Apache-2.0 |
+| Socket.IO client Java | MIT |
+
 ## Bibliotecas de navegador (copiadas para `public/` por `npm run vendor`)
 
 | Pacote | Licença | Onde |

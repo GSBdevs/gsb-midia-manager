@@ -128,6 +128,13 @@ function createServer(config) {
   app.use('/thumbs', mediaHeaders, express.static(dirs.thumbs, { maxAge: '7d', fallthrough: false }));
   app.use('/branding', mediaHeaders, express.static(dirs.branding, { immutable: true, maxAge: '365d', fallthrough: false }));
 
+  // Instaladores dos players: a tela nova baixa direto do servidor pelo navegador.
+  app.use('/downloads', (_req, res, next) => {
+    res.set('X-Content-Type-Options', 'nosniff');
+    res.set('Content-Disposition', 'attachment');
+    next();
+  }, express.static(config.downloadsDir, { fallthrough: false, index: false }));
+
   app.use('/player', securityHeaders('player', mediaOrigin), express.static(path.join(PUBLIC_DIR, 'player')));
   app.use('/', securityHeaders('panel', mediaOrigin), express.static(path.join(PUBLIC_DIR, 'panel')));
 

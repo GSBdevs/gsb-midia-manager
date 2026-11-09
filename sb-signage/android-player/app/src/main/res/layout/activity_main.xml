@@ -1,69 +1,321 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- O palco (stage) gira como um todo conforme a orientação definida no painel. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000"
+    android:clipChildren="false"
     android:keepScreenOn="true">
 
-    <!-- vídeo (ExoPlayer) -->
-    <androidx.media3.ui.PlayerView
-        android:id="@+id/playerView"
+    <FrameLayout
+        android:id="@+id/stage"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:use_controller="false"
-        app:resize_mode="fit" />
+        android:background="#000000">
 
-    <!-- imagens -->
-    <ImageView
-        android:id="@+id/imageView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="fitCenter"
-        android:visibility="gone"
-        android:contentDescription="@null" />
+        <!-- conteúdo: encolhe para dar lugar ao rodapé -->
+        <FrameLayout
+            android:id="@+id/mediaArea"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-    <!-- pareamento -->
-    <LinearLayout
-        android:id="@+id/pairingView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#0D0D0F"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:visibility="gone">
+            <FrameLayout
+                android:id="@+id/videoHost"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <ImageView
+                android:id="@+id/imageView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#000000"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <!-- rodapé: letreiro + relógio -->
+        <LinearLayout
+            android:id="@+id/footer"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_gravity="bottom"
+            android:background="#EB08080A"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <View
+                android:id="@+id/footerLine"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:background="#FFD60A" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp">
+
+                <FrameLayout
+                    android:id="@+id/tickerWrap"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+
+                    <TextView
+                        android:id="@+id/ticker"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:ellipsize="none"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:textColor="#E9E9EC"
+                        android:textStyle="bold" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/clock"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:textColor="#FFD60A"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- sem conteúdo -->
+        <LinearLayout
+            android:id="@+id/standbyView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#0D0D0F"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/standbyLogo"
+                android:layout_width="wrap_content"
+                android:layout_height="96dp"
+                android:adjustViewBounds="true"
+                android:contentDescription="@null"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/standbyBrand"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:textColor="#9A9AA2" />
+
+            <TextView
+                android:id="@+id/standbyName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textColor="#E9E9EC"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/standbyHint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/standby_hint"
+                android:textColor="#9A9AA2" />
+        </LinearLayout>
+
+        <!-- pareamento -->
+        <LinearLayout
+            android:id="@+id/pairingView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#0D0D0F"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/pairLogo"
+                android:layout_width="wrap_content"
+                android:layout_height="96dp"
+                android:adjustViewBounds="true"
+                android:contentDescription="@null"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/pairBrand"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#9A9AA2" />
+
+            <TextView
+                android:id="@+id/pairCode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.1"
+                android:maxLines="1"
+                android:text="@string/pair_placeholder"
+                android:textColor="#FFD60A"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/pairHint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/pairing_hint"
+                android:textColor="#9A9AA2" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/changeServer"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/change_server"
+                    android:textAllCaps="false"
+                    android:textColor="#9A9AA2" />
+
+                <Button
+                    android:id="@+id/allowAutostart"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/allow_autostart"
+                    android:textAllCaps="false"
+                    android:textColor="#FFD60A"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- primeira execução -->
+        <LinearLayout
+            android:id="@+id/setupView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#0D0D0F"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/setup_title"
+                android:textColor="#E9E9EC"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="@string/setup_help"
+                android:textColor="#9A9AA2" />
+
+            <EditText
+                android:id="@+id/serverInput"
+                android:layout_width="360dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:autofillHints=""
+                android:hint="@string/setup_hint"
+                android:imeOptions="actionGo"
+                android:inputType="textUri"
+                android:maxLines="1"
+                android:textColor="#E9E9EC"
+                android:textColorHint="#6A6A72" />
+
+            <Button
+                android:id="@+id/setupConnect"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:backgroundTint="#FFD60A"
+                android:text="@string/setup_connect"
+                android:textAllCaps="false"
+                android:textColor="#111111" />
+
+            <TextView
+                android:id="@+id/setupError"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center"
+                android:textColor="#FF5C5C" />
+        </LinearLayout>
+
+        <!-- emergência em texto: cobre tudo -->
+        <FrameLayout
+            android:id="@+id/emergencyView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#B00020"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/emergencyText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:letterSpacing="0.05"
+                android:padding="32dp"
+                android:textAllCaps="true"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold" />
+        </FrameLayout>
 
         <TextView
+            android:id="@+id/identify"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:background="#FFD60A"
+            android:gravity="center"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp"
+            android:textColor="#111111"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/offlineBadge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="▶ SB Signage"
+            android:layout_gravity="top|end"
+            android:layout_margin="12dp"
+            android:text="@string/offline_badge"
+            android:textColor="#FF5C5C"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/cacheProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="16dp"
             android:textColor="#9A9AA2"
-            android:textSize="22sp" />
+            android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/pairCode"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:letterSpacing="0.3"
-            android:text="······"
-            android:textColor="#FFD60A"
-            android:textSize="96sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/pairing_hint"
-            android:textColor="#9A9AA2"
-            android:textSize="18sp" />
-    </LinearLayout>
-
-    <!-- tela "desligada" (janela de energia) -->
-    <View
-        android:id="@+id/powerOffView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#000000"
-        android:visibility="gone" />
+        <!-- "desligada" pela agenda de energia: fica acima de tudo -->
+        <View
+            android:id="@+id/powerOff"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#000000"
+            android:visibility="gone" />
+    </FrameLayout>
 </FrameLayout>

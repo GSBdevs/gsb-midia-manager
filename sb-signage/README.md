@@ -13,7 +13,9 @@ npm start
 ```
 
 - **Painel**: `http://localhost:4000/` — senha inicial `admin` (troque em **Configurações → Senha**)
-- **Player**: `http://<IP-da-máquina>:4000/player` — abra na TV / TV Box / qualquer navegador
+- **Player**: `http://<IP-da-máquina>:4000/player` em qualquer navegador, ou um app instalado, que dispensa navegador (em fase de testes): [Windows](windows-player/README.md) e [Android](android-player/README.md). Os instaladores ficam em `http://<IP>:4000/downloads/`.
+
+**Primeiro teste com dois computadores:** [TESTE-RAPIDO.md](TESTE-RAPIDO.md).
 - **Testes**: `npm test` (43 testes, ~10 s; usam o ffmpeg real)
 - **Guia de testes manuais**: [`TESTES.md`](TESTES.md)
 
@@ -91,12 +93,15 @@ sb-signage/
 │   └── player/             # player web
 ├── test/                   # node:test — domínio, store, API e mídia real
 ├── scripts/                # vendor.js (ícones/libs), copy-ffmpeg.js (build)
-├── android-player/         # scaffold do player Android nativo (não testado em aparelho)
+├── android-player/         # app Android nativo: validado em emulador, falta aparelho real
+├── windows-player/         # app Windows (Electron) com o player web embutido
+├── downloads/              # instaladores oferecidos em /downloads (gerado)
 └── data/                   # criado em runtime
 ```
 
 ## Limites conhecidos
 
-- Um administrador por instalação (sem usuários/papéis/clientes) — ver o plano de escala em `../ESCALA-MULTIUSUARIO.md`.
+- Um administrador por instalação (sem usuários/papéis/clientes) — ver o plano de escala em `docs/ESCALA-MULTIUSUARIO.md`.
+- Os apps instalados (Windows e Android) estão em fase de testes — ver `docs/PLAYER-NATIVO.md`.
 - Persistência em JSON — suficiente para dezenas de telas e centenas de mídias.
 - Fila de transcode com concorrência 1, no mesmo processo do servidor.

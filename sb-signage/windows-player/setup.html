@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'self'" />
+  <title>SB Signage Player — servidor</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; background: #0d0d0f; color: #e9e9ec;
+      font: 16px/1.5 'Segoe UI', system-ui, sans-serif; }
+    body { display: grid; place-items: center; }
+    main { width: min(520px, 90vw); text-align: center; }
+    .brand { color: #9a9aa2; letter-spacing: 1px; margin-bottom: 24px; }
+    .brand b { color: #ffd60a; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    p { color: #9a9aa2; margin: 0 0 24px; }
+    input { width: 100%; padding: 14px 16px; font-size: 20px; border-radius: 10px;
+      border: 1px solid #3a3a42; background: #16161a; color: #fff; outline: none; }
+    input:focus { border-color: #ffd60a; }
+    .row { display: flex; gap: 12px; margin-top: 16px; }
+    button { flex: 1; padding: 12px; font-size: 17px; font-weight: 600; border-radius: 10px;
+      border: 0; cursor: pointer; background: #ffd60a; color: #111; }
+    button.secondary { background: #26262c; color: #e9e9ec; }
+    button:disabled { opacity: .6; cursor: default; }
+    #msg { min-height: 24px; margin-top: 16px; color: #ff5c5c; }
+    #msg.ok { color: #9a9aa2; }
+    .keys { margin-top: 32px; font-size: 13px; color: #6a6a72; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="brand">▶ SB <b>Signage</b> Player</div>
+    <h1>Endereço do servidor</h1>
+    <p>O mesmo endereço que aparece no terminal do servidor, em "Rede".</p>
+    <form id="form">
+      <input id="server" placeholder="Ex.: 192.168.0.10:4000" autocomplete="off" spellcheck="false" autofocus />
+      <div class="row">
+        <button type="button" id="cancel" class="secondary" hidden>Voltar</button>
+        <button type="submit" id="save">Conectar</button>
+      </div>
+    </form>
+    <div id="msg"></div>
+    <div class="keys">Ctrl+Shift+S abre esta tela · Ctrl+Shift+Q fecha o player</div>
+  </main>
+  <script src="setup.js"></script>
+</body>
+</html>
