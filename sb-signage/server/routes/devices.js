@@ -56,6 +56,7 @@ module.exports = function deviceRoutes(router, { store, auth, notify, requireAut
       playlistId: null,
       groupId: null,
       orientation: 0,
+      fit: 'contain',
       volume: 100,
       muted: false,
       overlay: { ticker: '', showClock: false },
@@ -93,6 +94,11 @@ module.exports = function deviceRoutes(router, { store, auth, notify, requireAut
     }
     if ('orientation' in b) device.orientation = [0, 90, 180, 270].includes(+b.orientation) ? +b.orientation : 0;
     if ('volume' in b) device.volume = clampInt(b.volume, 0, 100, 100);
+    // contain: mídia inteira (bordas pretas se sobrar espaço); cover: preenche a tela
+    if ('fit' in b) {
+      if (!['contain', 'cover'].includes(b.fit)) return res.status(400).json({ error: 'ajuste de mídia inválido' });
+      device.fit = b.fit;
+    }
     if ('muted' in b) device.muted = !!b.muted;
     if (b.overlay && typeof b.overlay === 'object') {
       device.overlay = { ticker: String(b.overlay.ticker || '').slice(0, 500), showClock: !!b.overlay.showClock };

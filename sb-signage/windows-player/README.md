@@ -48,16 +48,20 @@ npm run dist      # gera dist\SBSignagePlayer-Setup-2.0.0.exe e publica em ..\do
 | Página do player quebra | Recarrega em 3 s (testado) |
 | Página trava | Força o reinício da página após 15 s sem resposta |
 | Servidor ou rede caem | Continua tocando do cache; reconecta sozinho (testado: 3 s) |
-| Windows reinicia | Abre no login, já em tela cheia |
+| Windows reinicia | Abre no login, já em tela cheia (atalho na pasta Inicializar) |
+| Processo do app morre | O **vigia** (tarefa agendada "SB Signage Player (vigia)", a cada minuto) reabre |
+| Alt+F4 | Ignorado; só Ctrl+Shift+Q fecha (e pausa o vigia até reabrir à mão ou reiniciar) |
 
 ## Limitações
 
 - **Sem assinatura digital:** o Windows avisa ("O Windows protegeu o computador") na instalação.
   Para vender, assine o instalador com certificado de código.
-- **Sem watchdog externo:** se o processo principal do app morrer, só volta no próximo login.
-- **Sem atualização remota:** versão nova é instalada por cima, baixando de `/downloads`.
+- **Atualização remota** (2.0.1+): o app busca `latest.yml` em `http://servidor/downloads/` ao abrir
+  e a cada 30 min, baixa e instala sozinho. Testado até o download; a instalação silenciosa é a
+  padrão do electron-builder e não foi executada nesta máquina.
+- **Bloqueio do Windows:** as teclas do sistema (Win, Ctrl+Alt+Del) seguem funcionando. Para
+  travar de verdade, use o recurso "Acesso atribuído" (quiosque) do próprio Windows.
 - **Vídeo grande** é montado em memória durante o download, como no player web (herdado do
   `player.js`); o cache em si fica em disco.
-- **Ícone padrão do Electron.**
 - O início automático é por usuário: o Windows precisa logar sozinho nesse usuário
   (logon automático) para a tela voltar sem ninguém digitar a senha.

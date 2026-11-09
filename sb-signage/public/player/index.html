@@ -17,8 +17,11 @@
     .layer { position: absolute; inset: 0 0 var(--footer-h) 0; opacity: 0; transition: opacity .5s ease;
       display: grid; place-items: center; background: #000; will-change: opacity; transform: translateZ(0); }
     .layer.visible { opacity: 1; }
-    .layer img, .layer video { width: 100%; height: 100%; object-fit: contain; }
-    .layer iframe { width: 100%; height: 100%; border: 0; background: #fff; }
+    /* posição absoluta: dentro da grade, height:100% não limitava a mídia e imagem em pé numa
+       tela deitada (ou o contrário) saía cortada em vez de inteira com bordas pretas */
+    .layer img, .layer video, .layer iframe { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .layer img, .layer video { object-fit: contain; }
+    .layer iframe { border: 0; background: #fff; }
 
     /* rodapé multi-zona: ticker + relógio */
     #footer {
@@ -29,10 +32,11 @@
     }
     #footer.show { display: flex; }
     #ticker-wrap { flex: 1; overflow: hidden; white-space: nowrap; }
-    #ticker { display: inline-block; white-space: nowrap; }
-    #ticker span { display: inline-block; padding-right: 80px; font-size: calc(var(--footer-h) * .42); font-weight: 600; }
-    #ticker.scroll { animation: ticker-scroll var(--ticker-s, 30s) linear infinite; }
-    @keyframes ticker-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    #ticker { display: inline-block; white-space: nowrap; font-size: calc(var(--footer-h) * .42); font-weight: 600;
+      will-change: transform; }
+    /* entra pela direita da faixa e sai inteiro pela esquerda (--ticker-from = largura da faixa) */
+    #ticker.scroll { animation: ticker-scroll var(--ticker-s, 20s) linear infinite; }
+    @keyframes ticker-scroll { from { transform: translateX(var(--ticker-from, 100vw)); } to { transform: translateX(-100%); } }
     #clock { font-size: calc(var(--footer-h) * .5); font-weight: 800; color: var(--accent);
       font-variant-numeric: tabular-nums; flex-shrink: 0; display: none; }
     #clock.show { display: block; }
@@ -40,8 +44,9 @@
     /* emergência: cobre o palco inteiro */
     #emergency-view { position: absolute; inset: 0; z-index: 15; display: none; background: #000; }
     #emergency-view.show { display: grid; place-items: center; }
-    #emergency-view img, #emergency-view video { width: 100%; height: 100%; object-fit: contain; }
-    #emergency-view iframe { width: 100%; height: 100%; border: 0; background: #fff; }
+    #emergency-view img, #emergency-view video, #emergency-view iframe { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #emergency-view img, #emergency-view video { object-fit: contain; }
+    #emergency-view iframe { border: 0; background: #fff; }
     .emergency-message {
       padding: 6vh 6vw; text-align: center; font-size: 6vw; font-weight: 800; line-height: 1.25;
       color: #fff; background: #b00020; width: 100%; height: 100%;
@@ -88,7 +93,7 @@
     <div id="layerA" class="layer"></div>
     <div id="layerB" class="layer"></div>
     <div id="footer">
-      <div id="ticker-wrap"><div id="ticker"><span></span><span></span></div></div>
+      <div id="ticker-wrap"><div id="ticker"></div></div>
       <div id="clock"></div>
     </div>
     <div id="emergency-view"></div>

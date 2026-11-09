@@ -1,7 +1,7 @@
 {
   "name": "sb-signage-player",
   "productName": "SB Signage Player",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Player do SB Signage para Windows: tela cheia, sem navegador, com cache offline.",
   "main": "main.cjs",
   "private": true,
@@ -22,12 +22,14 @@
       "main.cjs",
       "preload.cjs",
       "local-server.cjs",
+      "autostart.cjs",
       "setup.html",
       "setup.js",
       "app/**/*"
     ],
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
     "win": {
       "target": [
@@ -43,7 +45,17 @@
       "oneClick": true,
       "perMachine": false,
       "runAfterFinish": true,
-      "artifactName": "SBSignagePlayer-Setup-${version}.${ext}"
-    }
+      "artifactName": "SBSignagePlayer-Setup-${version}.${ext}",
+      "include": "build/installer.nsh"
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "http://localhost:4000/downloads/"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "6.3.9"
   }
 }

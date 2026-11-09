@@ -16,6 +16,8 @@ import android.widget.ImageView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.CoroutineScope
@@ -57,12 +59,17 @@ class PlaybackController(
     private var advanceJob: Job? = null
     private var stallJob: Job? = null
     private var looping = false
+    private var fill = false
 
     /** true enquanto há item em exibição (ou sendo preparado). */
     val isActive: Boolean get() = current != null
 
     init {
         exo.addListener(object : Player.Listener {
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                applyVideoFit(videoSize.width, videoSize.height)
+            }
+
             override fun onRenderedFirstFrame() {
                 // a imagem anterior só sai quando o vídeo já tem imagem: evita piscar preto
                 if (current?.type == "video") hideImage()
@@ -93,6 +100,25 @@ class PlaybackController(
         videoHost.addView(view)
         view.player = exo
         playerView = view
+    }
+
+    /** "Preencher a tela" do painel; vale para o item atual e os próximos. */
+    fun setFill(value: Boolean) {
+        if (fill == value) return
+        fill = value
+        imageView.drawable?.let { applyImageFit(it) }
+        exo.videoSize.let { applyVideoFit(it.width, it.height) }
+    }
+
+    private fun applyImageFit(drawable: Drawable) {
+        val cover = Fit.shouldFill(fill, drawable.intrinsicWidth, drawable.intrinsicHeight, videoHost.width, videoHost.height)
+        imageView.scaleType = if (cover) ImageView.ScaleType.CENTER_CROP else ImageView.ScaleType.FIT_CENTER
+    }
+
+    private fun applyVideoFit(width: Int, height: Int) {
+        val cover = Fit.shouldFill(fill, width, height, videoHost.width, videoHost.height)
+        playerView?.resizeMode =
+            if (cover) AspectRatioFrameLayout.RESIZE_MODE_ZOOM else AspectRatioFrameLayout.RESIZE_MODE_FIT
     }
 
     fun setAudio(volume: Int, muted: Boolean) {
@@ -206,6 +232,7 @@ class PlaybackController(
     }
 
     private fun showImage(drawable: Drawable) {
+        applyImageFit(drawable)
         imageView.setImageDrawable(drawable)
         imageView.visibility = View.VISIBLE
         (drawable as? Animatable)?.start() // GIF e WebP animados

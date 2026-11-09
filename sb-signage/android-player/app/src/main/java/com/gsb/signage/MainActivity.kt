@@ -413,6 +413,7 @@ class MainActivity : AppCompatActivity(), PlaybackController.Listener {
         settings = s
         playback.setRotated(s.orientation != 0)
         playback.setAudio(s.volume, s.muted)
+        playback.setFill(s.fill)
         layoutStage()
         updateFooter()
         updateClock()

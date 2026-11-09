@@ -150,7 +150,7 @@ adb shell appops write-settings
 | Remover a tela no painel | App volta ao código e apaga a mídia local |
 
 **Só em aparelho real** (o emulador não responde): imagem fluida em 1080p, letreiro sem
-engasgo, som na saída HDMI, e 24 horas tocando sem parar. Se puder, acompanhe a memória:
+engasgo e som na saída HDMI. Se puder, acompanhe a memória:
 
 ```powershell
 adb shell dumpsys meminfo com.gsb.signage

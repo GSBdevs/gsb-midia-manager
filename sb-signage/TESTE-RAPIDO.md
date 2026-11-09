@@ -87,8 +87,17 @@ Atalhos no notebook:
 | **Ctrl+Shift+Q** | Fecha o player |
 | **Ctrl+Shift+S** | Troca o endereço do servidor |
 
-O player abre sozinho quando o Windows liga. Para remover: feche com Ctrl+Shift+Q e
-desinstale em **Configurações → Aplicativos → SB Signage Player**.
+O player abre sozinho no login do Windows (atalho na pasta Inicializar) e um **vigia** o reabre
+em até 1 minuto se ele for fechado ou cair. Ctrl+Shift+Q pausa o vigia até a próxima vez que
+o app for aberto ou o Windows reiniciar, para a manutenção não ser interrompida.
+
+**Atualização:** versões novas publicadas no servidor (`npm run dist` no `windows-player`) são
+instaladas sozinhas em até 30 minutos. A versão 2.0.0 não tinha isso: instale a 2.0.1 uma vez
+pelo link "Baixar".
+
+Para remover: feche com Ctrl+Shift+Q e desinstale em **Configurações → Aplicativos → SB Signage
+Player** (remove também o atalho e o vigia). Registro de diagnóstico:
+`%APPDATA%\SB Signage Player\player.log`.
 
 ## 4. Gerenciar pelo host
 
@@ -108,7 +117,7 @@ Faça no host e observe o notebook:
 | Trocar a ordem da playlist e salvar | Muda em segundos |
 | ⚙ da tela: letreiro com um texto e relógio | Rodapé aparece sem recomeçar o vídeo |
 | Card → menu → **Identificar** | Nome da tela por 8 s |
-| **Emergência** → mensagem → Ativar | Mensagem em tela cheia; Desativar volta ao normal |
+| ⚙ da tela: **Ajuste da mídia → Preencher a tela** | Mídia com a mesma orientação da tela ocupa tudo; foto em pé numa tela deitada continua inteira, com bordas |
 | **Parar o servidor** (Ctrl+C no terminal) | **A tela continua exibindo** |
 | Com o servidor parado: reiniciar o notebook | O player abre sozinho e **exibe do cache** |
 | `npm start` de novo | Card volta a online em segundos |

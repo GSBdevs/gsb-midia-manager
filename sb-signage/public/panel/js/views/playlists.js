@@ -223,8 +223,14 @@ export default {
       if (e.target.dataset.act !== 'dur') return;
       const i = +e.target.closest('[data-i]').dataset.i;
       editor.items[i].duration = Math.max(1, Math.min(3600, parseInt(e.target.value, 10) || 10));
+      e.target.value = editor.items[i].duration;
       editor.dirty = true;
-      rerender();
+      // Sem redesenhar a tela: o "change" dispara quando o campo perde o foco, ou seja, no
+      // clique em Salvar. Redesenhar ali trocava o botão e o clique se perdia (nada era salvo).
+      root.querySelector('[data-dirty]')?.removeAttribute('hidden');
+      root.querySelector('[data-act="save"]')?.removeAttribute('disabled');
+      const cycle = root.querySelector('[data-cycle]');
+      if (cycle) cycle.textContent = `ciclo de ${fmtDur(itemsTotal(editor.items))}`;
     }, { signal });
 
     root.addEventListener('keydown', (e) => {
@@ -324,7 +330,7 @@ export default {
             </div>
             <div class="row row-wrap">
               <span class="badge">${plural(editor.items.length, 'item', 'itens')}</span>
-              <span class="badge badge-accent">${icon('clock')}ciclo de ${fmtDur(total)}</span>
+              <span class="badge badge-accent">${icon('clock')}<span data-cycle>ciclo de ${fmtDur(total)}</span></span>
             </div>
             ${usageHtml(editor.id)}
             <div class="toolbar" style="margin:0">

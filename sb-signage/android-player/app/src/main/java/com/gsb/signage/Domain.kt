@@ -24,6 +24,7 @@ data class PowerSchedule(val on: String, val off: String, val days: Set<Int>)
 
 data class Settings(
     val orientation: Int = 0,
+    val fill: Boolean = false,  // "preencher a tela" (fit = cover)
     val volume: Int = 100,
     val muted: Boolean = false,
     val ticker: String = "",
@@ -91,6 +92,7 @@ class Manifest(
             val overlay = o.optJSONObject("overlay")
             return Settings(
                 orientation = o.optInt("orientation", 0),
+                fill = o.str("fit") == "cover",
                 volume = o.optInt("volume", 100).coerceIn(0, 100),
                 muted = o.optBoolean("muted", false),
                 ticker = overlay?.str("ticker")?.trim() ?: "",
@@ -125,6 +127,17 @@ class Manifest(
         /** optString devolve o texto "null" para JSON null; aqui null continua null. */
         private fun JSONObject.str(key: String): String? =
             if (isNull(key)) null else getString(key)
+    }
+}
+
+object Fit {
+    /**
+     * Preencher só quando mídia e tela têm a mesma orientação: mídia deitada numa tela em pé
+     * (ou o contrário) fica inteira, com bordas pretas. Igual ao player web.
+     */
+    fun shouldFill(fill: Boolean, mediaW: Int, mediaH: Int, areaW: Int, areaH: Int): Boolean {
+        if (!fill || mediaW <= 0 || mediaH <= 0 || areaW <= 0 || areaH <= 0) return false
+        return mediaW == mediaH || (mediaW >= mediaH) == (areaW >= areaH)
     }
 }
 

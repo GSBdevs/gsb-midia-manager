@@ -1,8 +1,9 @@
 const $ = (id) => document.getElementById(id);
 
-window.sbPlayer.current().then((server) => {
+window.sbPlayer.current().then(({ server, version }) => {
   $('server').value = server;
   $('cancel').hidden = !server;
+  $('version').textContent = `versão ${version}`;
 });
 
 $('cancel').addEventListener('click', () => window.sbPlayer.cancel());

@@ -41,6 +41,7 @@ function migrate(raw, { sessionMaxDays = 30 } = {}) {
     delete dev.token;
     dev.groupId ??= null;
     dev.orientation ??= 0;
+    dev.fit ??= 'contain';
     dev.volume ??= 100;
     dev.muted ??= false;
     dev.overlay ??= { ticker: '', showClock: false };

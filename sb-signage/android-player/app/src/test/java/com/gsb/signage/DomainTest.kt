@@ -139,6 +139,17 @@ class DomainTest {
     }
 
     @Test
+    fun `preencher só quando a orientação da mídia e da tela coincidem`() {
+        assertFalse("opção desligada", Fit.shouldFill(false, 1920, 1080, 1920, 1080))
+        assertTrue("deitada em tela deitada", Fit.shouldFill(true, 1920, 1080, 1366, 768))
+        assertFalse("deitada em tela em pé: bordas pretas", Fit.shouldFill(true, 1920, 1080, 1080, 1920))
+        assertFalse("em pé em tela deitada: bordas pretas", Fit.shouldFill(true, 1080, 1920, 1920, 1080))
+        assertTrue("quadrada preenche", Fit.shouldFill(true, 1000, 1000, 1080, 1920))
+        assertTrue(Manifest.parse(sample.replace("\"orientation\":90", "\"orientation\":90,\"fit\":\"cover\"")).settings.fill)
+        assertFalse(Manifest.parse(sample).settings.fill)
+    }
+
+    @Test
     fun `registro de exibição tem limite`() {
         val file = File(Files.createTempDirectory("sb").toFile(), "log.jsonl")
         val log = PlayLog(file, max = 2)

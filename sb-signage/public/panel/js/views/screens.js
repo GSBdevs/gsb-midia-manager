@@ -124,10 +124,16 @@ async function settingsDialog(dev) {
             ${[[0, 'Paisagem (0°)'], [90, 'Retrato (90°)'], [180, 'Invertida (180°)'], [270, 'Retrato invertido (270°)']]
               .map(([v, l]) => `<option value="${v}" ${(dev.orientation || 0) === v ? 'selected' : ''}>${l}</option>`).join('')}
           </select></label>
+        <label class="field"><span>Ajuste da mídia</span>
+          <select name="fit">
+            <option value="contain" ${dev.fit !== 'cover' ? 'selected' : ''}>Inteira, com bordas pretas</option>
+            <option value="cover" ${dev.fit === 'cover' ? 'selected' : ''}>Preencher a tela</option>
+          </select></label>
         <label class="field"><span>Volume <b data-vol>${dev.volume ?? 100}%</b></span>
           <input name="volume" type="range" min="0" max="100" step="5" value="${dev.volume ?? 100}" /></label>
         <label class="check" style="align-self:end;height:var(--control-h)"><input name="muted" type="checkbox" ${dev.muted ? 'checked' : ''} />Sem som (mudo)</label>
       </div>
+      <p class="field-hint">Preencher a tela corta as sobras da mídia. Mídia deitada numa tela em pé (ou o contrário) aparece sempre inteira, com bordas pretas.</p>
       <fieldset class="fieldset"><legend>Rodapé (letreiro e relógio)</legend>
         <label class="field"><span>Texto do letreiro</span>
           <input name="ticker" maxlength="500" value="${esc(dev.overlay?.ticker || '')}" placeholder="Vazio = sem letreiro" /></label>
@@ -140,7 +146,7 @@ async function settingsDialog(dev) {
           <label class="field"><span>Desliga</span><input name="off" type="time" value="${ps?.off || '22:00'}" /></label>
         </div>
         ${dayChecks('powerDays', ps ? ps.days : [0, 1, 2, 3, 4, 5, 6])}
-        <p class="field-hint">Horários no fuso do servidor (${esc(state.overview?.timezone || '')}). Desligar a TV de verdade (HDMI-CEC) exige o player Android.</p>
+        <p class="field-hint">Horários no fuso do servidor (${esc(state.overview?.timezone || '')}). A tela fica preta; a TV em si não é desligada.</p>
       </fieldset>`,
     onOpen(dlg) {
       dlg.querySelector('[name=volume]').addEventListener('input', (e) => {
@@ -155,6 +161,7 @@ async function settingsDialog(dev) {
         body: {
           groupId: form.groupId.value || null,
           orientation: +form.orientation.value,
+          fit: form.fit.value,
           volume: +form.volume.value,
           muted: form.muted.checked,
           overlay: { ticker: form.ticker.value.trim(), showClock: form.showClock.checked },

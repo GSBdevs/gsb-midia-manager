@@ -109,6 +109,31 @@ test('pareamento, manifesto e credencial da tela', async (t) => {
     assert.equal((await s.call(`/api/devices/${device.id}`, { method: 'PATCH', token, body: { powerSchedule: null } })).status, 200);
   });
 
+  await t.test('ajuste da mídia: padrão inteira; "preencher" chega ao player e muda o manifesto', async () => {
+    const before = (await s.call('/api/player/manifest', { device: deviceToken })).json;
+    assert.equal(before.settings.fit, 'contain');
+    assert.equal((await s.call(`/api/devices/${device.id}`, { method: 'PATCH', token, body: { fit: 'esticar' } })).status, 400);
+    assert.equal((await s.call(`/api/devices/${device.id}`, { method: 'PATCH', token, body: { fit: 'cover' } })).status, 200);
+    const after = (await s.call('/api/player/manifest', { device: deviceToken })).json;
+    assert.equal(after.settings.fit, 'cover');
+    assert.notEqual(after.version, before.version, 'a tela recebe a mudança');
+  });
+
+  await t.test('editar a playlist em uso muda o manifesto da tela (itens e duração)', async () => {
+    const page = (await s.call('/api/media/webpage', { method: 'POST', token, body: { name: 'Site', url: 'https://example.com' } })).json;
+    const pl = (await s.call('/api/playlists', { method: 'POST', token, body: { name: 'Vitrine' } })).json;
+    await s.call(`/api/devices/${device.id}`, { method: 'PATCH', token, body: { playlistId: pl.id } });
+    const empty = (await s.call('/api/player/manifest', { device: deviceToken })).json;
+    await s.call(`/api/playlists/${pl.id}`, { method: 'PATCH', token, body: { items: [{ mediaId: page.id, duration: 10 }] } });
+    const one = (await s.call('/api/player/manifest', { device: deviceToken })).json;
+    assert.equal(one.items.length, 1);
+    assert.notEqual(one.version, empty.version);
+    await s.call(`/api/playlists/${pl.id}`, { method: 'PATCH', token, body: { items: [{ mediaId: page.id, duration: 25 }] } });
+    const longer = (await s.call('/api/player/manifest', { device: deviceToken })).json;
+    assert.equal(longer.items[0].duration, 25);
+    assert.notEqual(longer.version, one.version, 'só a duração mudou e a tela recebe');
+  });
+
   await t.test('proof-of-play: evento vai para o dia em que aconteceu, no fuso configurado', async () => {
     // 23:30 de 03/11 em São Paulo = 02:30Z de 04/11
     const ts = Date.parse('2026-11-04T02:30:00Z');

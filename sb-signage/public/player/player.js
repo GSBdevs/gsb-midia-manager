@@ -35,7 +35,7 @@
   let downloadAbort = null;
   let itemsSignature = null;   // muda só quando a lista de itens muda
   let clockOffset = 0;         // hora do servidor − hora local (ms)
-  let settings = { orientation: 0, volume: 100, muted: false, overlay: { ticker: '', showClock: false }, powerSchedule: null, timezone: null };
+  let settings = { orientation: 0, fit: 'contain', volume: 100, muted: false, overlay: { ticker: '', showClock: false }, powerSchedule: null, timezone: null };
   let emergencyShowing = false;
   let poweredOff = false;
   let clockTimer = null;
@@ -356,6 +356,7 @@
   function applySettings(s) {
     settings = {
       orientation: s.orientation || 0,
+      fit: s.fit === 'cover' ? 'cover' : 'contain',
       volume: s.volume ?? 100,
       muted: !!s.muted,
       overlay: s.overlay || { ticker: '', showClock: false },
@@ -364,6 +365,7 @@
     };
     applyOrientation(settings.orientation);
     applyOverlay(settings.overlay);
+    for (const el of document.querySelectorAll('.layer img, .layer video')) applyFit(el);
     // volume/mudo aplicados ao vivo nos vídeos em exibição
     for (const v of document.querySelectorAll('.layer video, #emergency-view video')) {
       v.volume = settings.volume / 100;
@@ -396,13 +398,8 @@
     $('#footer').classList.toggle('show', active);
     $('#clock').classList.toggle('show', !!ov.showClock);
 
-    const ticker = $('#ticker');
-    const [a, b] = ticker.querySelectorAll('span');
-    const text = hasTicker ? ov.ticker.trim() : '';
-    if (a.textContent !== text) { a.textContent = text; b.textContent = text; }
-    ticker.classList.toggle('scroll', hasTicker);
-    // velocidade proporcional ao texto (~4 caracteres/s, mínimo 18 s por volta)
-    ticker.style.setProperty('--ticker-s', `${Math.max(18, Math.round(text.length / 4))}s`);
+    tickerText = hasTicker ? ov.ticker.trim() : '';
+    startTicker();
 
     clearInterval(clockTimer);
     if (ov.showClock) {
@@ -410,6 +407,42 @@
       tick();
       clockTimer = setInterval(tick, 5000);
     }
+  }
+
+  // Letreiro: atravessa a faixa inteira em velocidade constante, qualquer que seja o tamanho
+  // do texto ou da tela. Recalculado quando a tela gira ou muda de tamanho.
+  let tickerText = '';
+  function startTicker() {
+    const ticker = $('#ticker');
+    ticker.textContent = tickerText;
+    ticker.classList.remove('scroll');
+    if (!tickerText) return;
+    requestAnimationFrame(() => {
+      const wrap = $('#ticker-wrap').clientWidth;
+      const text = ticker.scrollWidth;
+      if (!wrap) return;
+      const speed = Math.max(60, wrap / 12); // px/s: cruza a faixa em ~12 s
+      ticker.style.setProperty('--ticker-from', `${wrap}px`);
+      ticker.style.setProperty('--ticker-s', `${Math.max(6, (wrap + text) / speed).toFixed(1)}s`);
+      void ticker.offsetWidth; // reinicia a animação
+      ticker.classList.add('scroll');
+    });
+  }
+  window.addEventListener('resize', () => startTicker());
+
+  // Ajuste da mídia: "contain" mostra inteira (bordas pretas); "cover" preenche a área.
+  // Mídia deitada em tela em pé (ou o contrário) fica sempre inteira — preencher cortaria demais.
+  function applyFit(el) {
+    const w = el.naturalWidth || el.videoWidth;
+    const h = el.naturalHeight || el.videoHeight;
+    const area = el.parentElement || $('#stage');
+    let fit = 'contain';
+    if (settings.fit === 'cover' && w && h && area.clientWidth && area.clientHeight) {
+      const mediaLandscape = w >= h;
+      const areaLandscape = area.clientWidth >= area.clientHeight;
+      if (mediaLandscape === areaLandscape || w === h) fit = 'cover';
+    }
+    el.style.objectFit = fit;
   }
 
   // ---------- energia (soft power via agenda) ----------
@@ -727,6 +760,8 @@
       logPlay(item, item.duration || 10);
     }
     incoming.appendChild(el);
+    applyFit(el);
+    if (el.tagName === 'VIDEO' && !el.videoWidth) el.addEventListener('loadedmetadata', () => applyFit(el), { once: true });
 
     incoming.classList.add('visible');
     outgoing.classList.remove('visible');

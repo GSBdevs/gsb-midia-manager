@@ -61,6 +61,7 @@ function buildManifest(data, device, { now = new Date(), timeZone, mediaBaseUrl 
     .filter(Boolean);
   const settings = {
     orientation: device.orientation || 0,
+    fit: device.fit === 'cover' ? 'cover' : 'contain',
     volume: device.volume ?? 100,
     muted: !!device.muted,
     overlay: device.overlay || { ticker: '', showClock: false },
