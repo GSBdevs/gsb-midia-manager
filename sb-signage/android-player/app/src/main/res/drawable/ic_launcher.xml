@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Mesmo desenho de public/panel/icon.svg (SB Mídias), em cores sólidas -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path android:fillColor="#0D0D0F" android:pathData="M0,0h108v108h-108z" />
-    <path android:fillColor="#FFD60A" android:pathData="M40,30L80,54L40,78Z" />
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <path android:fillColor="#141418" android:pathData="M116,0h280a116,116 0,0 1,116 116v280a116,116 0,0 1,-116 116h-280a116,116 0,0 1,-116 -116v-280a116,116 0,0 1,116 -116z" />
+    <path android:strokeColor="#61FFD60A" android:strokeWidth="18" android:fillColor="#00000000"
+        android:pathData="M192,88h210a26,26 0,0 1,26 26v118a26,26 0,0 1,-26 26h-210a26,26 0,0 1,-26 -26v-118a26,26 0,0 1,26 -26z" />
+    <path android:fillColor="#FFC61A" android:pathData="M114,148h240a30,30 0,0 1,30 30v136a30,30 0,0 1,-30 30h-240a30,30 0,0 1,-30 -30v-136a30,30 0,0 1,30 -30z" />
+    <path android:fillColor="#15151A" android:pathData="M203,203L289,246L203,289Z" />
+    <path android:fillColor="#E9B400" android:pathData="M218,344h32v40h-32z" />
+    <path android:fillColor="#FFD60A" android:pathData="M172,380h124a12,12 0,0 1,0 24h-124a12,12 0,0 1,0 -24z" />
 </vector>

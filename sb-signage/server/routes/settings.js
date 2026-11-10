@@ -32,7 +32,7 @@ module.exports = function settingsRoutes(router, { store, dirs, notify, auth, re
   router.patch('/settings', requireAuth, (req, res) => {
     const b = req.body || {};
     const s = d.settings;
-    if (typeof b.brandName === 'string') s.brandName = b.brandName.trim().slice(0, 60) || 'SB Signage';
+    if (typeof b.brandName === 'string') s.brandName = b.brandName.trim().slice(0, 60) || 'SB Mídias';
     if ('accent' in b) {
       if (!HEX_RE.test(b.accent || '')) return res.status(400).json({ error: 'cor inválida (use #RRGGBB)' });
       s.accent = b.accent.toLowerCase();

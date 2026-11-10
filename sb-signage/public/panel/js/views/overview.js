@@ -57,7 +57,6 @@ export default {
       const { playlist } = basePlaylistOf(dev);
       let label;
       if (!dev.online) label = `<span class="badge badge-danger">${icon('wifi-off')}offline</span>`;
-      else if (dev.status?.emergency) label = `<span class="badge badge-danger">${icon('siren')}emergência</span>`;
       else if (dev.status?.poweredOff) label = `<span class="badge">${icon('power')}desligada (agenda)</span>`;
       else label = `<span class="badge badge-ok"><span class="dot dot-ok"></span>no ar</span>`;
       return `<div class="list-item">

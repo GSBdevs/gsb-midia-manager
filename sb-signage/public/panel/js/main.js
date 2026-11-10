@@ -1,8 +1,8 @@
 // Painel — inicialização, login, navegação, tempo real e alertas globais.
 import { api, session } from './api.js';
-import { state, subscribe, load, loadAll, patchDeviceStatus, mediaById } from './state.js';
+import { state, subscribe, load, loadAll, patchDeviceStatus } from './state.js';
 import {
-  esc, icon, toast, toastError, openDialog, applyAccent, applyTheme, toggleTheme, applyDensity, brandHtml, closeMenu
+  esc, icon, toast, applyAccent, applyTheme, toggleTheme, applyDensity, brandHtml, closeMenu
 } from './ui.js';
 import overview from './views/overview.js';
 import screens from './views/screens.js';
@@ -99,13 +99,6 @@ function renderNav() {
 
 function renderBanners() {
   const parts = [];
-  const em = state.emergency;
-  if (em?.active) {
-    const m = em.mediaId ? mediaById(em.mediaId) : null;
-    parts.push(`<div class="banner banner-danger" role="alert">${icon('siren')}
-      <span class="grow"><b>EMERGÊNCIA ATIVA</b> em todas as telas — ${esc(m ? `mídia: ${m.name}` : `"${em.message}"`)}</span>
-      <button class="btn btn-sm" type="button" data-banner="emergency-off">Desativar</button></div>`);
-  }
   if (state.me?.defaultPassword) {
     parts.push(`<div class="banner banner-warn">${icon('key-round')}
       <span class="grow">O painel está usando a senha padrão <code>admin</code>. Troque antes de expor o servidor fora da rede local.</span>
@@ -117,15 +110,6 @@ function renderBanners() {
   }
   $('#banners').innerHTML = parts.join('');
 }
-
-$('#banners').addEventListener('click', async (e) => {
-  if (e.target.closest('[data-banner="emergency-off"]')) {
-    try {
-      await api('/emergency', { method: 'DELETE' });
-      toast('Emergência desativada — telas voltando à programação.');
-    } catch (err) { toastError(err); }
-  }
-});
 
 // ---------- navegação ----------
 function captureFocus(root) {
@@ -190,7 +174,7 @@ window.addEventListener('beforeunload', (e) => {
 // Re-renderiza a tela atual só quando algo de que ela depende mudou.
 subscribe((keys) => {
   renderNav();
-  if (keys.has('emergency') || keys.has('media') || keys.has('me')) renderBanners();
+  if (keys.has('me')) renderBanners();
   if (current && current.view.deps.some((d) => keys.has(d))) renderView();
 });
 
@@ -216,7 +200,6 @@ function connectSocket() {
   socket.on('playlists-changed', reload('playlists'));
   socket.on('schedules-changed', reload('schedules'));
   socket.on('groups-changed', reload('groups'));
-  socket.on('emergency-changed', reload('emergency'));
   socket.on('settings-changed', (s) => {
     applyBranding(s);
     renderView();
@@ -234,46 +217,12 @@ function connectSocket() {
   });
 }
 
-// ---------- emergência ----------
-async function openEmergency() {
-  const ready = state.media.filter((m) => m.status === 'ready');
-  await openDialog({
-    title: 'Conteúdo de emergência',
-    submitText: 'Ativar em todas as telas',
-    danger: true,
-    body: `
-      <p class="muted">Substitui imediatamente o conteúdo de <b>todas as telas</b> até ser desativado — inclusive as que estão desligadas pela agenda de energia.</p>
-      <div class="segmented" role="tablist">
-        <button type="button" class="active" data-mode="message">${icon('type')} Mensagem</button>
-        <button type="button" data-mode="media">${icon('image')} Mídia</button>
-      </div>
-      <label class="field" data-pane="message"><span>Mensagem exibida em tela cheia</span>
-        <textarea name="message" rows="3" maxlength="500" placeholder="Ex.: EVACUAR O PRÉDIO PELA SAÍDA LESTE"></textarea></label>
-      <label class="field" data-pane="media" hidden><span>Mídia</span>
-        <select name="mediaId">${ready.map((m) => `<option value="${m.id}">${esc(m.name)}</option>`).join('') || '<option value="">Nenhuma mídia pronta</option>'}</select></label>`,
-    onOpen(dlg) {
-      dlg.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
-        dlg.querySelectorAll('[data-mode]').forEach((x) => x.classList.toggle('active', x === b));
-        dlg.querySelectorAll('[data-pane]').forEach((p) => { p.hidden = p.dataset.pane !== b.dataset.mode; });
-        dlg.dataset.mode = b.dataset.mode;
-      }));
-      dlg.dataset.mode = 'message';
-    },
-    async onSubmit(form, dlg) {
-      const body = dlg.dataset.mode === 'media' ? { mediaId: form.mediaId.value } : { message: form.message.value.trim() };
-      await api('/emergency', { method: 'POST', body });
-      toast('Emergência ativada em todas as telas.', 'warn');
-    }
-  });
-}
-
 // ---------- boot ----------
 async function enterApp() {
   state.me = await api('/me');
   applyBranding(state.me.branding || {});
   $('#login-view').hidden = true;
   $('#app').hidden = false;
-  $('#btn-emergency').innerHTML = `${icon('siren')}<span>Emergência</span>`;
   $('#btn-logout').innerHTML = `${icon('log-out')}<span>Sair</span>`;
   $('#menu-toggle').innerHTML = icon('menu');
   connectSocket();
@@ -283,8 +232,6 @@ async function enterApp() {
   navigate(location.hash.slice(1) || 'overview');
 }
 
-$('#btn-emergency').addEventListener('click', openEmergency);
-window.addEventListener('open-emergency', openEmergency);
 $('#btn-logout').addEventListener('click', logout);
 $('#theme-toggle').addEventListener('click', () => {
   toggleTheme();

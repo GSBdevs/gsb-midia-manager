@@ -1,11 +1,11 @@
-// SB Signage Player para Windows — processo principal do Electron.
+// SB Mídias (player para Windows) — processo principal do Electron.
 // Tela cheia em modo quiosque, inicia com o Windows, mantém a tela acesa, se recupera sozinho
 // e se atualiza a partir do servidor.
 const { app, BrowserWindow, ipcMain, powerSaveBlocker } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { createLocalServer, normalizeServer } = require('./local-server.cjs');
-const { ensureWatchdog } = require('./autostart.cjs');
+const { ensureWatchdog, removeLegacyWatchdog } = require('./autostart.cjs');
 
 // Porta fixa: o cache e o pareamento ficam guardados por origem (127.0.0.1:porta).
 const PORT = Number(process.env.SB_PLAYER_PORT) || 47800;
@@ -23,8 +23,9 @@ const KIOSK = app.isPackaged && !WINDOWED;
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required'); // vídeo com som
 app.commandLine.appendSwitch('disable-background-timer-throttling');
 
-// pasta de dados alternativa (testes); o padrão é %APPDATA%\SB Signage Player
-if (process.env.SB_PLAYER_DATA) app.setPath('userData', process.env.SB_PLAYER_DATA);
+// Pasta de dados fixa em %APPDATA%\SB Signage Player, mesmo com o nome novo do produto:
+// quem atualiza mantém servidor, pareamento e cache. SB_PLAYER_DATA troca a pasta (testes).
+app.setPath('userData', process.env.SB_PLAYER_DATA || path.join(app.getPath('appData'), 'SB Signage Player'));
 
 // ---------- registro em arquivo (diagnóstico em campo) ----------
 const logFile = () => path.join(app.getPath('userData'), 'player.log');
@@ -89,10 +90,18 @@ function showSetup() {
   win.loadFile(path.join(__dirname, 'setup.html'));
 }
 
-function quitForMaintenance() {
+// Fechar de propósito (X, Alt+F4, barra de tarefas ou Ctrl+Shift+Q) pausa o vigia: o app não
+// reabre sozinho até alguém abri-lo de novo ou o Windows reiniciar. O vigia só reabre o app
+// quando ele cai ou é encerrado à força (Gerenciador de Tarefas, falta de memória).
+function pauseWatchdog(how) {
+  if (config.paused) return;
   config = { ...config, paused: true };
   writeConfig(config);
-  log('fechado pelo técnico (Ctrl+Shift+Q); vigia pausado');
+  log(`fechado pelo usuário (${how}); vigia pausado até reabrir o app ou reiniciar o Windows`);
+}
+
+function quitForMaintenance() {
+  pauseWatchdog('Ctrl+Shift+Q');
   app.quit();
 }
 
@@ -105,7 +114,7 @@ function createWindow() {
     autoHideMenuBar: true,
     kiosk: !WINDOWED,
     fullscreen: !WINDOWED,
-    title: 'SB Signage Player',
+    title: 'SB Mídias',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -116,9 +125,13 @@ function createWindow() {
   win.once('ready-to-show', () => win.show());
   win.webContents.setUserAgent(`${win.webContents.getUserAgent()} SBSignagePlayer-Windows/${app.getVersion()}`);
 
-  // Alt+F4 não fecha a tela; só o atalho de manutenção ou uma atualização
-  win.on('close', (event) => {
-    if (!quitting && !WINDOWED) event.preventDefault();
+  // fechar a janela (X, Alt+F4, barra de tarefas) é intencional; atualização não conta
+  win.on('close', () => {
+    if (!quitting) pauseWatchdog('janela fechada');
+  });
+  // Windows desligando ou saindo da conta: não é o usuário fechando o player
+  win.on('session-end', () => {
+    quitting = true;
   });
 
   // a janela só navega no próprio player; páginas web da playlist abrem em iframe
@@ -253,6 +266,7 @@ app.whenReady().then(async () => {
   if (KIOSK) {
     // versões antigas usavam o registro "Run"; agora é o atalho do instalador + o vigia
     app.setLoginItemSettings({ openAtLogin: false });
+    await removeLegacyWatchdog();
     const result = await ensureWatchdog(process.execPath);
     log(result.ok ? 'vigia ativo (tarefa agendada a cada minuto)' : `vigia não foi criado: ${result.output}`);
   }

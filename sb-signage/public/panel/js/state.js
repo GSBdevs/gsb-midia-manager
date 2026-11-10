@@ -3,13 +3,12 @@ import { api } from './api.js';
 
 export const state = {
   me: null,
-  settings: { brandName: 'SB Signage', accent: '#ffd60a', theme: 'dark', density: 'comfortable', logoUrl: null },
+  settings: { brandName: 'SB Mídias', accent: '#ffd60a', theme: 'dark', density: 'comfortable', logoUrl: null },
   devices: [],
   media: [],
   playlists: [],
   schedules: [],
   groups: [],
-  emergency: null,
   overview: null
 };
 
@@ -29,7 +28,6 @@ const loaders = {
   playlists: async () => { state.playlists = await api('/playlists'); },
   schedules: async () => { state.schedules = await api('/schedules'); },
   groups: async () => { state.groups = await api('/groups'); },
-  emergency: async () => { state.emergency = await api('/emergency'); },
   overview: async () => { state.overview = await api('/overview'); }
 };
 
@@ -44,7 +42,7 @@ export async function load(...keys) {
   }));
   emit(...keys);
 }
-export const loadAll = () => load('devices', 'media', 'playlists', 'schedules', 'groups', 'emergency', 'overview');
+export const loadAll = () => load('devices', 'media', 'playlists', 'schedules', 'groups', 'overview');
 
 // Atualização pontual de status vinda do socket (sem recarregar a lista inteira).
 export function patchDeviceStatus({ id, online, lastSeenAt, status }) {

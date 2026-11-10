@@ -8,7 +8,7 @@ const path = require('node:path');
 const root = path.join(__dirname, '..', '..');
 const out = path.join(__dirname, '..', 'dist');
 const { version } = require('../package.json');
-const setup = `SBSignagePlayer-Setup-${version}.exe`;
+const setup = `SBMidias-Setup-${version}.exe`;
 const files = [
   path.join(out, setup),
   path.join(out, `${setup}.blockmap`),
@@ -20,7 +20,7 @@ for (const dir of [path.join(root, 'downloads'), path.join(root, 'dist', 'downlo
   fs.mkdirSync(dir, { recursive: true });
   // versões antigas do instalador saem: a página de download e o latest.yml apontam só a atual
   for (const old of fs.readdirSync(dir)) {
-    if (/^SBSignagePlayer-Setup-.*\.exe(\.blockmap)?$/.test(old) && !old.startsWith(setup)) fs.rmSync(path.join(dir, old));
+    if (/^SB(Signage)?(Player|Midias)-Setup-.*\.exe(\.blockmap)?$/.test(old) && !old.startsWith(setup)) fs.rmSync(path.join(dir, old));
   }
   for (const file of files) fs.copyFileSync(file, path.join(dir, path.basename(file)));
 }

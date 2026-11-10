@@ -107,10 +107,10 @@ npm start
 
 ```powershell
 npm run build:exe
-.\dist\sb-signage.exe
+.\dist\sb-midias.exe
 ```
 
-**Esperado:** mesmo comportamento do `npm start`. A pasta `dist/` contém `sb-signage.exe`,
+**Esperado:** mesmo comportamento do `npm start`. A pasta `dist/` contém `sb-midias.exe`,
 `ffmpeg.exe`, `ffprobe.exe` e as licenças — distribua a pasta inteira.
 
 ## 12. App nativo Android (sem navegador)

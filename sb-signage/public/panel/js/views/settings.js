@@ -116,7 +116,7 @@ function systemCard() {
       <div class="list-item"><span class="grow">Fuso horário da agenda</span><b>${esc(o.timezone || '—')}</b></div>
       <div class="list-item"><span class="grow">Mídia armazenada</span><b>${fmtSize(o.media?.bytes) || '0 KB'}</b></div>
       <div class="list-item"><span class="grow">Fila de processamento</span><b>${plural(o.transcodeQueue || 0, 'item', 'itens')}</b></div>
-      <div class="list-item"><span class="grow">Versão</span><b>SB Signage ${esc(o.version || '')} · Node ${esc(o.node || '')}</b></div>
+      <div class="list-item"><span class="grow">Versão</span><b>SB Mídias ${esc(o.version || '')} · Node ${esc(o.node || '')}</b></div>
     </div>
   </section>`;
 }

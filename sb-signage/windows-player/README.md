@@ -1,4 +1,4 @@
-# SB Signage Player — Windows
+# SB Mídias — player para Windows
 
 App instalado no PC ou notebook que serve de tela. Abre em tela cheia, inicia com o Windows,
 mantém a tela acesa e **não depende de abrir um navegador**.
@@ -13,7 +13,7 @@ servidor local em `127.0.0.1:47800`:
 
 - **Arquivos do player:** servidos de dentro do app. O player abre mesmo com o servidor fora do ar.
 - **API, mídia e Socket.IO:** encaminhados ao servidor SB Signage, inclusive WebSocket.
-- **Cache e pareamento:** ficam no disco do app, em `%APPDATA%\SB Signage Player`.
+- **Cache e pareamento:** ficam no disco do app, em `%APPDATA%\SB Signage Player` (nome mantido da versão 2.0 para não perder o pareamento).
 
 Por isso o `player.js` roda sem nenhuma alteração: o mesmo código do navegador, com os mesmos
 recursos (crossfade, páginas web, SVG, HLS, emergência, letreiro, relógio).
@@ -24,7 +24,7 @@ recursos (crossfade, páginas web, SVG, HLS, emergência, letreiro, relógio).
 npm install
 npm test          # 7 testes do servidor local contra o servidor SB Signage real
 npm start         # abre em janela comum, para desenvolvimento
-npm run dist      # gera dist\SBSignagePlayer-Setup-2.0.0.exe e publica em ..\downloads
+npm run dist      # gera dist\SBMidias-Setup-<versão>.exe e publica em ..\downloads
 ```
 
 `npm run dist` coloca o instalador (e o APK do Android, se existir) em `sb-signage/downloads` e
@@ -37,8 +37,8 @@ npm run dist      # gera dist\SBSignagePlayer-Setup-2.0.0.exe e publica em ..\do
 | Primeira execução | Digita o endereço do servidor e aparece o código de pareamento |
 | Trocar o servidor | **Ctrl+Shift+S** (o pareamento é mantido se for o mesmo servidor) |
 | Fechar | **Ctrl+Shift+Q** |
-| Abrir sem tela cheia | `"SB Signage Player.exe" --windowed` |
-| Já apontar para um servidor | `"SB Signage Player.exe" --server=192.168.0.10:4000` |
+| Abrir sem tela cheia | `"SB Midias.exe" --windowed` |
+| Já apontar para um servidor | `"SB Midias.exe" --server=192.168.0.10:4000` |
 | Outra porta local | variável `SB_PLAYER_PORT` (padrão 47800) |
 
 ## Recuperação
@@ -49,8 +49,8 @@ npm run dist      # gera dist\SBSignagePlayer-Setup-2.0.0.exe e publica em ..\do
 | Página trava | Força o reinício da página após 15 s sem resposta |
 | Servidor ou rede caem | Continua tocando do cache; reconecta sozinho (testado: 3 s) |
 | Windows reinicia | Abre no login, já em tela cheia (atalho na pasta Inicializar) |
-| Processo do app morre | O **vigia** (tarefa agendada "SB Signage Player (vigia)", a cada minuto) reabre |
-| Alt+F4 | Ignorado; só Ctrl+Shift+Q fecha (e pausa o vigia até reabrir à mão ou reiniciar) |
+| App cai ou é encerrado à força | O **vigia** (tarefa agendada "SB Mídias (vigia)", a cada minuto) reabre |
+| Fechado pelo X, Alt+F4, barra de tarefas ou Ctrl+Shift+Q | Fecha e **não volta sozinho** até alguém abrir o app ou o Windows reiniciar |
 
 ## Limitações
 

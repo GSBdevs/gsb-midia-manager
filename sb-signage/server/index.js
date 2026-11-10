@@ -12,7 +12,7 @@ async function main() {
   // todas as placas de rede: o primeiro IP nem sempre é o do Wi-Fi (Hyper-V, VPN, emulador)
   const ips = Object.entries(os.networkInterfaces())
     .flatMap(([name, list]) => (list || []).filter((n) => n.family === 'IPv4' && !n.internal).map((n) => ({ name, address: n.address })));
-  console.log('SB Signage no ar.');
+  console.log('SB Mídias no ar.');
   console.log(`  Painel : http://localhost:${port}/`);
   if (!ips.length) console.log('  Rede   : nenhuma placa de rede ativa — só este computador acessa');
   for (const ip of ips) console.log(`  Rede   : http://${ip.address}:${port}   (${ip.name})`);

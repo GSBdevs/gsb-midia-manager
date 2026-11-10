@@ -1,7 +1,7 @@
 # Teste rápido com dois computadores
 
 - **Este PC (host):** roda o servidor e o painel; é onde você gerencia tudo.
-- **Notebook (tela):** instala o SB Signage Player e exibe o conteúdo em tela cheia.
+- **Notebook (tela):** instala o SB Mídias e exibe o conteúdo em tela cheia.
 
 Tempo: ~15 minutos. Os dois precisam estar **na mesma rede** (mesmo Wi-Fi ou cabo).
 
@@ -10,7 +10,7 @@ Tempo: ~15 minutos. Os dois precisam estar **na mesma rede** (mesmo Wi-Fi ou cab
 ```
  Notebook (tela)                                       Este PC (host)
 ┌──────────────────────────────┐                     ┌───────────────────────────────┐
-│ SB Signage Player            │   rede local        │ servidor SB Signage :4000     │
+│ SB Mídias (app)              │   rede local        │ servidor SB Mídias :4000      │
 │  · player embutido no app    │ ──────────────────▶ │  · painel (você usa aqui)     │
 │  · vídeos e fotos em disco   │  1. pergunta:       │  · API das telas              │
 │  · registro de exibições     │     "mudou algo?"   │  · mídia convertida           │
@@ -42,11 +42,11 @@ npm start
 O terminal mostra algo assim:
 
 ```
-SB Signage no ar.
+SB Mídias no ar.
   Painel : http://localhost:4000/
   Rede   : http://192.168.25.114:4000   (Wi-Fi)
            ↑ endereço que as telas usam (player no navegador: acrescente /player)
-  Baixar : http://192.168.25.114:4000/downloads/SBSignagePlayer-Setup-2.0.0.exe
+  Baixar : http://192.168.25.114:4000/downloads/SBMidias-Setup-2.1.0.exe
 ```
 
 **Anote o endereço da linha "Rede"**: ele é usado nos passos seguintes. Se aparecerem várias
@@ -60,7 +60,7 @@ o host, libere a porta num PowerShell **como administrador**:
 netsh advfirewall firewall add rule name="SB Signage 4000" dir=in action=allow protocol=TCP localport=4000
 ```
 
-Sem Node.js instalado, use `dist\sb-signage.exe` no lugar do `npm start`; o resultado é o mesmo.
+Sem Node.js instalado, use `dist\sb-midias.exe` no lugar do `npm start`; o resultado é o mesmo.
 
 **Mantenha o terminal aberto.** Fechá-lo desliga o servidor (as telas continuam exibindo o cache).
 
@@ -88,15 +88,14 @@ Atalhos no notebook:
 | **Ctrl+Shift+S** | Troca o endereço do servidor |
 
 O player abre sozinho no login do Windows (atalho na pasta Inicializar) e um **vigia** o reabre
-em até 1 minuto se ele for fechado ou cair. Ctrl+Shift+Q pausa o vigia até a próxima vez que
-o app for aberto ou o Windows reiniciar, para a manutenção não ser interrompida.
+em até 1 minuto se ele **cair**. Fechar de propósito (X da janela, Alt+F4, barra de tarefas ou
+Ctrl+Shift+Q) não conta como queda: ele só volta quando alguém abrir o app ou o Windows reiniciar.
 
 **Atualização:** versões novas publicadas no servidor (`npm run dist` no `windows-player`) são
-instaladas sozinhas em até 30 minutos. A versão 2.0.0 não tinha isso: instale a 2.0.1 uma vez
-pelo link "Baixar".
+instaladas sozinhas em até 30 minutos. As versões 2.0.x não tinham isso por completo: instale a 2.1.0 uma
+vez pelo link "Baixar"; daí em diante elas chegam sozinhas.
 
-Para remover: feche com Ctrl+Shift+Q e desinstale em **Configurações → Aplicativos → SB Signage
-Player** (remove também o atalho e o vigia). Registro de diagnóstico:
+Para remover: feche com Ctrl+Shift+Q e desinstale em **Configurações → Aplicativos → SB Mídias** (remove também o atalho e o vigia). Registro de diagnóstico:
 `%APPDATA%\SB Signage Player\player.log`.
 
 ## 4. Gerenciar pelo host

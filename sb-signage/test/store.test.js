@@ -25,7 +25,7 @@ test('migração v1 → atual: tokens viram hash e campos novos ganham padrão',
   assert.equal(d.sessions[0].tokenHash, hashToken('segredo-da-sessao'));
   assert.ok(d.sessions[0].expiresAt > 1000);
   assert.equal(d.pairings[0].tokenHash, hashToken('segredo-do-par'));
-  assert.equal(d.settings.brandName, 'SB Signage');
+  assert.equal(d.settings.brandName, 'SB Mídias', 'nome antigo padrão vira o novo');
   assert.deepEqual(d.groups, []);
   // idempotente
   assert.deepEqual(migrate(JSON.parse(JSON.stringify(d))), d);

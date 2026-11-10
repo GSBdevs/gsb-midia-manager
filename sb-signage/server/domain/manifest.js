@@ -45,7 +45,7 @@ function buildEmergency(data, mediaBaseUrl) {
 
 function brandingOf(settings = {}) {
   return {
-    brandName: settings.brandName || 'SB Signage',
+    brandName: settings.brandName || 'SB Mídias',
     accent: settings.accent || '#ffd60a',
     logoUrl: settings.logo ? `/branding/${settings.logo}` : null
   };

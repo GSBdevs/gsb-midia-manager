@@ -236,9 +236,9 @@ export function applyDensity(density) {
 }
 
 export function brandHtml(settings, { large = false } = {}) {
-  const name = settings?.brandName || 'SB Signage';
+  const name = settings?.brandName || 'SB Mídias';
   if (settings?.logoUrl) {
     return `<img class="brand-logo" src="${esc(settings.logoUrl)}" alt="${esc(name)}" ${large ? 'style="max-height:48px"' : ''} />`;
   }
-  return `<span class="brand-mark">${esc(name.trim().charAt(0).toUpperCase() || 'S')}</span><span class="brand-name">${esc(name)}</span>`;
+  return `<img class="brand-icon" src="icon.svg" alt="" /><span class="brand-name">${esc(name)}</span>`;
 }

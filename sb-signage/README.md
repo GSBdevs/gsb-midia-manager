@@ -53,7 +53,7 @@ npm start
 
 ```powershell
 npm install
-npm run build:exe    # gera dist/sb-signage.exe + ffmpeg.exe + ffprobe.exe + licenças
+npm run build:exe    # gera dist/sb-midias.exe + ffmpeg.exe + ffprobe.exe + licenças
 ```
 
 Distribua a pasta `dist/` inteira. O FFmpeg é **GPL-3.0** — veja [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) antes de vender ou instalar em cliente.
@@ -101,7 +101,7 @@ sb-signage/
 
 ## Limites conhecidos
 
-- Um administrador por instalação (sem usuários/papéis/clientes) — ver o plano de escala em `docs/ESCALA-MULTIUSUARIO.md`.
+- Um administrador por instalação. A base multiusuário (banco, clientes, usuários e papéis) existe e está testada, mas ainda não está ligada ao painel — ver `docs/FASE-A-MULTIUSUARIO.md`.
 - Os apps instalados (Windows e Android) estão em fase de testes — ver `docs/PLAYER-NATIVO.md`.
 - Persistência em JSON — suficiente para dezenas de telas e centenas de mídias.
 - Fila de transcode com concorrência 1, no mesmo processo do servidor.

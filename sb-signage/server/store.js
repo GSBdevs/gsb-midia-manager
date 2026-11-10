@@ -8,7 +8,7 @@ const SCHEMA_VERSION = 2;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const DEFAULT_SETTINGS = {
-  brandName: 'SB Signage',
+  brandName: 'SB Mídias',
   accent: '#ffd60a',
   theme: 'dark',       // 'dark' | 'light' | 'system'
   density: 'comfortable', // 'comfortable' | 'compact'
@@ -34,6 +34,8 @@ function emptyData() {
 function migrate(raw, { sessionMaxDays = 30 } = {}) {
   const data = { ...emptyData(), ...raw };
   data.settings = { ...DEFAULT_SETTINGS, ...(raw.settings || {}) };
+  // nome antigo do produto: quem nunca personalizou a marca passa a ver o nome novo
+  if (data.settings.brandName === 'SB Signage') data.settings.brandName = DEFAULT_SETTINGS.brandName;
   data.emergency = { ...emptyData().emergency, ...(raw.emergency || {}) };
 
   for (const dev of data.devices) {

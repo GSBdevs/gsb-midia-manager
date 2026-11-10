@@ -32,7 +32,6 @@ function card(dev) {
 
   let preview;
   if (!dev.online) preview = icon('wifi-off');
-  else if (s.emergency) preview = icon('siren');
   else if (s.poweredOff) preview = icon('power');
   else preview = thumb ? '' : icon('tv');
 
@@ -55,7 +54,6 @@ function card(dev) {
       ${preview}
       <div class="overlay-top">
         ${dev.online ? '<span class="badge badge-ok"><span class="dot dot-ok"></span>online</span>' : `<span class="badge badge-danger">offline · ${esc(fmtAgo(dev.lastSeenAt))}</span>`}
-        ${s.emergency ? `<span class="badge badge-danger">${icon('siren')}emergência</span>` : ''}
         ${issues.filter((i) => i.text !== 'offline').map((i) => `<span class="badge badge-${i.kind === 'warn' ? 'warn' : i.kind === 'danger' ? 'danger' : 'info'}">${esc(i.text)}</span>`).join('')}
       </div>
       ${dev.online && s.playing ? `<div class="now">Exibindo <b>${esc(s.playing)}</b></div>` : ''}

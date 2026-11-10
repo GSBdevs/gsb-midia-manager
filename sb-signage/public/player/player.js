@@ -137,7 +137,7 @@
   function applyBranding(b) {
     if (!b) return;
     if (b.accent) document.documentElement.style.setProperty('--accent', b.accent);
-    document.title = `${b.brandName || 'SB Signage'} — Player`;
+    document.title = `${b.brandName || 'SB Mídias'} — Player`;
     for (const el of document.querySelectorAll('.brand')) {
       el.textContent = '';
       if (b.logoUrl) {
@@ -147,7 +147,7 @@
         el.appendChild(img);
       } else {
         const strong = document.createElement('b');
-        strong.textContent = b.brandName || 'SB Signage';
+        strong.textContent = b.brandName || 'SB Mídias';
         el.append('▶ ', strong);
       }
     }

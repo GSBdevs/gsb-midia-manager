@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Ícone do SB Mídias: uma tela em destaque reproduzindo, à frente de outra tela
+       (conteúdo distribuído para várias telas). Fonte única do favicon e dos apps. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#202027"/>
+      <stop offset="1" stop-color="#0b0b0e"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffe45c"/>
+      <stop offset="1" stop-color="#ffb000"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <rect x="166" y="88" width="262" height="170" rx="26" fill="none" stroke="#ffd60a" stroke-opacity=".38" stroke-width="18"/>
+  <rect x="84" y="148" width="300" height="196" rx="30" fill="url(#screen)"/>
+  <path d="M203 203 L289 246 L203 289 Z" fill="#15151a" stroke="#15151a" stroke-width="16" stroke-linejoin="round"/>
+  <rect x="218" y="344" width="32" height="40" fill="#e9b400"/>
+  <rect x="160" y="380" width="148" height="24" rx="12" fill="#ffd60a"/>
+</svg>

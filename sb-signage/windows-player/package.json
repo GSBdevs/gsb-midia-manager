@@ -1,8 +1,8 @@
 {
   "name": "sb-signage-player",
-  "productName": "SB Signage Player",
-  "version": "2.0.1",
-  "description": "Player do SB Signage para Windows: tela cheia, sem navegador, com cache offline.",
+  "productName": "SB Mídias",
+  "version": "2.1.1",
+  "description": "Player do SB Mídias para Windows: tela cheia, sem navegador, com cache offline.",
   "main": "main.cjs",
   "private": true,
   "scripts": {
@@ -17,7 +17,7 @@
   },
   "build": {
     "appId": "com.gsb.signage.player",
-    "productName": "SB Signage Player",
+    "productName": "SB Mídias",
     "files": [
       "main.cjs",
       "preload.cjs",
@@ -39,14 +39,17 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "executableName": "SB Midias"
     },
     "nsis": {
       "oneClick": true,
       "perMachine": false,
       "runAfterFinish": true,
-      "artifactName": "SBSignagePlayer-Setup-${version}.${ext}",
-      "include": "build/installer.nsh"
+      "artifactName": "SBMidias-Setup-${version}.${ext}",
+      "include": "build/installer.nsh",
+      "shortcutName": "SB Mídias",
+      "uninstallDisplayName": "SB Mídias"
     },
     "publish": [
       {
