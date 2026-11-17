@@ -3,12 +3,12 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { startServer } = require('./helpers');
+const { startServer, ADMIN } = require('./helpers');
 
 const PNG_1X1 = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
 
-test('autenticação e sessões', async (t) => {
+test('primeiro acesso, login por e-mail e sessões', async (t) => {
   const s = await startServer();
   t.after(() => s.close());
 
@@ -16,58 +16,72 @@ test('autenticação e sessões', async (t) => {
     assert.equal((await s.call('/api/devices')).status, 401);
   });
 
+  await t.test('primeiro acesso só acontece uma vez', async () => {
+    assert.equal((await s.call('/api/setup')).json.needed, false);
+    const again = await s.call('/api/setup', { method: 'POST', body: { orgName: 'Invasor', email: 'x@x.com', password: 'qualquer123' } });
+    assert.equal(again.status, 409);
+  });
+
+  await t.test('e-mail inexistente e senha errada dão a mesma resposta', async () => {
+    const a = await s.call('/api/login', { method: 'POST', body: { email: 'ninguem@teste.com.br', password: 'errada123' } });
+    const b = await s.call('/api/login', { method: 'POST', body: { email: ADMIN.email, password: 'errada123' } });
+    assert.equal(a.status, 401);
+    assert.deepEqual(a.json, b.json);
+  });
+
   await t.test('rate limit de login não é contornável com X-Forwarded-For', async () => {
     let blocked = 0;
     for (let i = 0; i < 14; i++) {
       const r = await s.call('/api/login', {
-        method: 'POST', body: { password: 'errada' }, headers: { 'X-Forwarded-For': `10.0.${i}.1` }
+        method: 'POST', body: { email: ADMIN.email, password: 'errada' }, headers: { 'X-Forwarded-For': `10.0.${i}.1` }
       });
       if (r.status === 429) blocked++;
     }
     assert.ok(blocked >= 4, `esperava bloqueio após 10 falhas, bloqueou ${blocked}`);
   });
+});
+
+test('sessão: /me, logout, expiração e troca de senha', async (t) => {
+  const s = await startServer();
+  t.after(() => s.close());
+
+  await t.test('/me traz usuário, organização, papel e permissões', async () => {
+    const me = (await s.call('/api/me', { token: await s.login() })).json;
+    assert.equal(me.user.email, ADMIN.email);
+    assert.equal(me.user.platformAdmin, true, 'a primeira conta administra a instalação');
+    assert.equal(me.org.name, ADMIN.orgName);
+    assert.equal(me.role, 'owner');
+    assert.ok(me.permissions.includes('users.manage'));
+    assert.equal(me.branding.brandName, 'SB Mídias');
+  });
 
   await t.test('logout revoga a sessão no servidor', async () => {
-    const s2 = await startServer();
-    try {
-      const token = await s2.login();
-      assert.equal((await s2.call('/api/me', { token })).status, 200);
-      await s2.call('/api/logout', { method: 'POST', token });
-      assert.equal((await s2.call('/api/me', { token })).status, 401);
-    } finally {
-      await s2.close();
-    }
+    const token = await s.login();
+    assert.equal((await s.call('/api/me', { token })).status, 200);
+    await s.call('/api/logout', { method: 'POST', token });
+    assert.equal((await s.call('/api/me', { token })).status, 401);
   });
 
   await t.test('sessão expirada é recusada', async () => {
-    const s3 = await startServer();
-    try {
-      const token = await s3.login();
-      for (const sess of s3.instance.store.data.sessions) sess.expiresAt = Date.now() - 1;
-      assert.equal((await s3.call('/api/me', { token })).status, 401);
-    } finally {
-      await s3.close();
-    }
+    const token = await s.login();
+    await s.db.system((tx) => tx.query("UPDATE user_sessions SET expires_at = now() - interval '1 second'"));
+    assert.equal((await s.call('/api/me', { token })).status, 401);
   });
 
-  await t.test('/me sinaliza senha padrão; troca de senha derruba as outras sessões', async () => {
-    const s4 = await startServer();
-    try {
-      const a = await s4.login();
-      const b = await s4.login();
-      assert.equal((await s4.call('/api/me', { token: a })).json.defaultPassword, true);
-      assert.equal((await s4.call('/api/account/password', { method: 'POST', token: a, body: { current: 'x', next: 'novasenha123' } })).status, 401);
-      assert.equal((await s4.call('/api/account/password', { method: 'POST', token: a, body: { current: 'admin', next: 'curta' } })).status, 400);
-      const ok = await s4.call('/api/account/password', { method: 'POST', token: a, body: { current: 'admin', next: 'novasenha123' } });
-      assert.equal(ok.status, 200);
-      assert.equal((await s4.call('/api/me', { token: b })).status, 401, 'sessão antiga derrubada');
-      assert.equal((await s4.call('/api/me', { token: ok.json.token })).json.defaultPassword, false);
-      assert.equal((await s4.call('/api/login', { method: 'POST', body: { password: 'admin' } })).status, 401);
-      assert.equal((await s4.call('/api/login', { method: 'POST', body: { password: 'novasenha123' } })).status, 200);
-      assert.equal(s4.instance.store.data.auth.passwordHash.includes('novasenha'), false);
-    } finally {
-      await s4.close();
-    }
+  await t.test('troca de senha derruba as outras sessões e não grava a senha em texto', async () => {
+    const a = await s.login();
+    const b = await s.login();
+    const pw = (body) => s.call('/api/account/password', { method: 'POST', token: a, body });
+    assert.equal((await pw({ current: 'x', next: 'novasenha123' })).status, 403);
+    assert.equal((await pw({ current: ADMIN.password, next: 'curta' })).status, 400);
+    const ok = await pw({ current: ADMIN.password, next: 'novasenha123' });
+    assert.equal(ok.status, 200);
+    assert.equal((await s.call('/api/me', { token: b })).status, 401, 'sessão antiga derrubada');
+    assert.equal((await s.call('/api/me', { token: ok.json.token })).status, 200, 'a nova sessão vale');
+    assert.equal((await s.call('/api/login', { method: 'POST', body: { email: ADMIN.email, password: ADMIN.password } })).status, 401);
+    const hash = (await s.db.system((tx) => tx.query('SELECT password_hash FROM users WHERE email = $1', [ADMIN.email]))).rows[0].password_hash;
+    assert.equal(hash.includes('novasenha'), false);
+    assert.match(hash, /^scrypt\$/);
   });
 });
 
@@ -77,10 +91,12 @@ test('pareamento, manifesto e credencial da tela', async (t) => {
   const token = await s.login();
   const { deviceToken, device } = await s.pairDevice(token, 'Recepção');
 
-  await t.test('credencial da tela fica só como hash', () => {
-    s.instance.store.flush();
-    assert.equal(fs.readFileSync(path.join(s.dataDir, 'data.json'), 'utf8').includes(deviceToken), false);
+  await t.test('credencial da tela fica só como hash', async () => {
+    const rows = (await s.db.system((tx) => tx.query('SELECT token_hash FROM devices'))).rows;
+    assert.equal(rows.length, 1);
+    assert.notEqual(rows[0].token_hash, deviceToken);
     assert.equal(device.tokenHash, undefined, 'hash não vaza na API');
+    assert.equal((await s.call('/api/devices', { token })).json[0].tokenHash, undefined);
   });
 
   await t.test('manifesto com ETag entre aspas e 304 quando nada mudou', async () => {
@@ -142,7 +158,8 @@ test('pareamento, manifesto e credencial da tela', async (t) => {
       body: { events: [{ mediaId: 'm1', name: 'Vídeo', ts: Math.min(ts, Date.now()), dur: 30 }] }
     });
     assert.equal(r.json.saved, 1);
-    const files = fs.readdirSync(path.join(s.dataDir, 'logs'));
+    const orgId = (await s.call('/api/me', { token })).json.org.id;
+    const files = fs.readdirSync(path.join(s.dataDir, 'logs', orgId)); // uma pasta por organização
     if (ts <= Date.now()) assert.deepEqual(files, ['plays-2026-11-03.jsonl']);
     const rep = await s.call('/api/logs?from=2026-11-01&to=2026-11-30', { token });
     assert.equal(rep.json.totalPlays, 1);
@@ -245,16 +262,35 @@ test('instaladores dos players são baixados em /downloads', async (t) => {
   assert.ok([403, 404].includes(escape.status), `fora da pasta: ${escape.status}`);
 });
 
-test('dados reais da v1 são migrados sem perder telas nem sessões ativas', async () => {
+test('primeiro acesso importa a instalação anterior (até da v1) sem parear as telas de novo', async () => {
   const seed = {
-    devices: [{ id: 'd1', name: 'TV antiga', token: 'tok-antigo', playlistId: null }],
+    devices: [{ id: 'd1', name: 'TV antiga', token: 'tok-antigo', playlistId: 'p1' }],
     sessions: [{ token: 'sess-antiga', createdAt: Date.now() }],
-    media: [], playlists: [], schedules: [], pairings: []
+    media: [{ id: 'w1', name: 'Cardápio', type: 'webpage', url: 'https://exemplo.com', status: 'ready', createdAt: 1 },
+      { id: 'f1', name: 'falhou.mp4', type: 'video', status: 'failed', error: 'x', createdAt: 2 }],
+    playlists: [{ id: 'p1', name: 'Loja', items: [{ mediaId: 'w1', duration: 15 }], createdAt: 1 }],
+    schedules: [], pairings: []
   };
-  const s = await startServer({}, { seed });
+  const s = await startServer({}, { setup: false, seed });
   try {
-    assert.equal((await s.call('/api/player/manifest', { device: 'tok-antigo' })).status, 200, 'tela continua pareada');
-    assert.equal((await s.call('/api/me', { token: 'sess-antiga' })).status, 200, 'sessão recente continua válida');
+    fs.mkdirSync(path.join(s.dataDir, 'logs'), { recursive: true });
+    fs.writeFileSync(path.join(s.dataDir, 'logs', 'plays-2026-10-01.jsonl'), '{"ts":1,"deviceId":"d1","mediaId":"w1","dur":15}\n');
+    const status = (await s.call('/api/setup')).json;
+    assert.equal(status.needed, true);
+    assert.deepEqual([status.legacy.devices, status.legacy.media], [1, 2], 'a tela de primeiro acesso mostra o que vai importar');
+
+    const r = await s.call('/api/setup', { method: 'POST', body: { ...ADMIN, importLegacy: true } });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.imported.devices, 1);
+    assert.equal(r.json.imported.logs, 1);
+
+    const m = await s.call('/api/player/manifest', { device: 'tok-antigo' });
+    assert.equal(m.status, 200, 'tela continua pareada');
+    assert.deepEqual(m.json.items.map((i) => [i.id, i.duration]), [['w1', 15]]);
+    assert.equal((await s.call('/api/me', { token: 'sess-antiga' })).status, 401, 'sessões antigas não valem no login por e-mail');
+    const rep = await s.call('/api/logs?date=2026-10-01', { token: r.json.token });
+    assert.equal(rep.json.totalPlays, 1, 'relatórios antigos acompanham a organização');
+    assert.ok(fs.existsSync(path.join(s.dataDir, 'data.json')), 'o data.json não é alterado');
   } finally {
     await s.close();
   }

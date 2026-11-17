@@ -3,9 +3,11 @@ const fs = require('fs');
 const path = require('path');
 const { buildManifest } = require('../domain/manifest');
 const { zonedParts } = require('../time');
+const repo = require('../repo');
 
 const MAX_EVENTS_PER_BATCH = 500;
 const MAX_EVENT_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const LAST_SEEN_WRITE_MS = 60 * 1000;
 
 // "If-None-Match" pode chegar com aspas, prefixo fraco (W/) ou como lista.
 function etagMatches(header, version) {
@@ -13,14 +15,22 @@ function etagMatches(header, version) {
   return header.split(',').some((t) => t.trim().replace(/^W\//, '').replace(/^"|"$/g, '') === version);
 }
 
-module.exports = function playerRoutes(router, { store, dirs, config, requireDevice }) {
-  router.get('/player/manifest', requireDevice, (req, res) => {
-    req.device.lastSeenAt = Date.now();
-    store.save();
-    const manifest = buildManifest(store.data, req.device, {
-      timeZone: config.timezone,
-      mediaBaseUrl: config.mediaBaseUrl
+// Registros de exibição: um JSONL por dia, numa pasta por organização.
+const logsDirOf = (dirs, orgId) => path.join(dirs.logs, orgId);
+
+module.exports = function playerRoutes(router, { db, dirs, config, auth }) {
+  const { requireDevice } = auth;
+
+  router.get('/player/manifest', requireDevice, async (req, res) => {
+    const device = req.device;
+    const data = await db.withOrg(device.orgId, async (tx) => {
+      // "visto por último" no máximo 1x/min por tela: o manifesto é consultado com frequência
+      if (!device.lastSeenAt || Date.now() - device.lastSeenAt > LAST_SEEN_WRITE_MS) {
+        await repo.updateDevicePresence(tx, device.id, { lastSeenAt: Date.now() });
+      }
+      return repo.snapshot(tx);
     });
+    const manifest = buildManifest(data, device, { timeZone: config.timezone, mediaBaseUrl: config.mediaBaseUrl });
     res.set('Cache-Control', 'no-cache');
     // ETag = versão do manifesto → o player pergunta "mudou algo?" quase de graça (304).
     res.set('ETag', `"${manifest.version}"`);
@@ -28,7 +38,7 @@ module.exports = function playerRoutes(router, { store, dirs, config, requireDev
     res.json(manifest);
   });
 
-  // O player envia lotes do que exibiu; o servidor acumula em JSONL diário (fora do data.json).
+  // O player envia lotes do que exibiu; o servidor acumula em JSONL diário (fora do banco).
   // Cada evento vai para o arquivo do dia em que ACONTECEU (no fuso configurado), não do envio.
   router.post('/player/logs', requireDevice, (req, res) => {
     const events = Array.isArray(req.body?.events) ? req.body.events.slice(0, MAX_EVENTS_PER_BATCH) : [];
@@ -50,9 +60,11 @@ module.exports = function playerRoutes(router, { store, dirs, config, requireDev
       if (!byDate.has(date)) byDate.set(date, []);
       byDate.get(date).push(line);
     }
+    const dir = logsDirOf(dirs, req.device.orgId);
+    if (byDate.size) fs.mkdirSync(dir, { recursive: true });
     let saved = 0;
     for (const [date, lines] of byDate) {
-      fs.appendFileSync(path.join(dirs.logs, `plays-${date}.jsonl`), lines.join('\n') + '\n');
+      fs.appendFileSync(path.join(dir, `plays-${date}.jsonl`), lines.join('\n') + '\n');
       saved += lines.length;
     }
     res.json({ ok: true, saved });
@@ -60,3 +72,4 @@ module.exports = function playerRoutes(router, { store, dirs, config, requireDev
 };
 
 module.exports.etagMatches = etagMatches;
+module.exports.logsDirOf = logsDirOf;

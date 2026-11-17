@@ -8,6 +8,7 @@ O SB Signage usa os componentes abaixo. Cada um mantém sua própria licença.
 |---|---|---|---|
 | FFmpeg (`ffmpeg.exe`) | 6.1.1 — build "essentials" de www.gyan.dev | **GPL-3.0** | Programa independente, executado como processo separado. Fonte: https://github.com/FFmpeg/FFmpeg/commit/e38092ef93 |
 | FFprobe (`ffprobe.exe`) | 4.0.2 | **GPL-3.0** | Programa independente, executado como processo separado. Fonte: https://ffmpeg.org/releases/ffmpeg-4.0.2.tar.xz |
+| PGlite (pasta `pglite/`) — banco embutido | 0.5.16 (PostgreSQL 18) | Apache-2.0; o PostgreSQL compilado dentro dele segue a PostgreSQL License (permissiva) | Carregado do disco pelo servidor. Licença em `pglite/LICENSE` |
 | Node.js (embutido no `.exe` pelo pkg) | 22.x | MIT e licenças de suas dependências | https://github.com/nodejs/node/blob/main/LICENSE |
 
 **Sobre a GPL do FFmpeg/FFprobe:** o SB Signage chama esses binários como processos
@@ -31,6 +32,8 @@ de hardware.
 | multer | MIT |
 | ffmpeg-static (instalador do binário) | GPL-3.0-or-later |
 | ffprobe-static (instalador do binário) | MIT |
+| @electric-sql/pglite (banco embutido) | Apache-2.0 |
+| pg (cliente PostgreSQL, com DATABASE_URL) | MIT |
 
 ## App Windows (`windows-player/`)
 

@@ -16,11 +16,62 @@
         <p class="muted">Painel de gerenciamento de telas</p>
       </div>
       <label class="field">
-        <span>Senha do administrador</span>
+        <span>E-mail</span>
+        <input id="login-email" type="email" autocomplete="username" required />
+      </label>
+      <label class="field">
+        <span>Senha</span>
         <input id="login-password" type="password" autocomplete="current-password" required />
       </label>
       <p id="login-error" class="error-text" hidden></p>
       <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+    </form>
+  </div>
+
+  <!-- PRIMEIRO ACESSO (instalação sem nenhuma conta) -->
+  <div id="setup-view" class="login" hidden>
+    <form id="setup-form" class="card login-card login-card-wide">
+      <div class="brand" data-brand></div>
+      <div>
+        <h1>Primeiro acesso</h1>
+        <p class="muted">Crie a conta que administra esta instalação. Depois você cadastra as outras pessoas em Usuários.</p>
+      </div>
+      <label class="field"><span>Nome da empresa</span>
+        <input name="orgName" maxlength="80" required /></label>
+      <div class="form-grid">
+        <label class="field"><span>Seu nome</span><input name="name" maxlength="80" autocomplete="name" /></label>
+        <label class="field"><span>E-mail</span><input name="email" type="email" autocomplete="username" required /></label>
+      </div>
+      <div class="form-grid">
+        <label class="field"><span>Senha</span><input name="password" type="password" minlength="8" autocomplete="new-password" required /></label>
+        <label class="field"><span>Confirmar senha</span><input name="confirm" type="password" minlength="8" autocomplete="new-password" required /></label>
+      </div>
+      <label class="check setup-import" id="setup-import" hidden>
+        <input type="checkbox" name="importLegacy" checked />
+        <span><b>Trazer os dados da versão anterior</b><br /><span class="small muted" id="setup-import-detail"></span></span>
+      </label>
+      <p id="setup-error" class="error-text" hidden></p>
+      <button type="submit" class="btn btn-primary btn-block">Criar conta e entrar</button>
+    </form>
+  </div>
+
+  <!-- SENHA PROVISÓRIA (troca obrigatória antes de usar o painel) -->
+  <div id="temp-password-view" class="login" hidden>
+    <form id="temp-password-form" class="card login-card">
+      <div class="brand" data-brand></div>
+      <div>
+        <h1>Defina sua senha</h1>
+        <p class="muted">Você entrou com uma senha provisória. Escolha a sua para continuar.</p>
+      </div>
+      <label class="field"><span>Senha provisória</span>
+        <input name="current" type="password" autocomplete="current-password" required /></label>
+      <label class="field"><span>Nova senha</span>
+        <input name="next" type="password" minlength="8" autocomplete="new-password" required /></label>
+      <label class="field"><span>Confirmar nova senha</span>
+        <input name="confirm" type="password" minlength="8" autocomplete="new-password" required /></label>
+      <p id="temp-password-error" class="error-text" hidden></p>
+      <button type="submit" class="btn btn-primary btn-block">Salvar e entrar</button>
+      <button type="button" class="btn btn-ghost btn-block" data-act="logout">Sair</button>
     </form>
   </div>
 
@@ -30,7 +81,8 @@
       <div class="brand" data-brand></div>
       <nav class="nav" id="nav" aria-label="Navegação principal"></nav>
       <div class="sidebar-footer">
-        <button id="btn-emergency" class="btn btn-emergency btn-block" type="button"></button>
+        <button id="btn-org" class="org-switch" type="button" data-menu="org" hidden></button>
+        <div class="user-box" id="user-box"></div>
         <button id="btn-logout" class="btn btn-ghost btn-block" type="button" style="justify-content:flex-start"></button>
       </div>
     </aside>
@@ -45,7 +97,7 @@
         </div>
         <div class="actions" id="view-actions"></div>
         <button class="btn btn-ghost btn-icon" id="theme-toggle" type="button" aria-label="Alternar tema"></button>
-      </header>cc
+      </header>
       <main class="content" id="view" tabindex="-1"></main>
     </div>
   </div>

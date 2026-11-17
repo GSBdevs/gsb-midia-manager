@@ -2,28 +2,31 @@
 //
 // Preserva IDs, nomes de arquivo de mídia e o hash da credencial de cada tela: as TVs já
 // pareadas continuam funcionando sem parear de novo. A senha do painel vira a senha do dono.
+const fs = require('fs');
+const path = require('path');
 const { AccountError } = require('../accounts');
 
 const ts = (ms) => (Number.isFinite(ms) && ms > 0 ? new Date(ms) : new Date());
 
-async function importFromJson(db, accounts, data, { orgName, ownerEmail, ownerName = '', ownerPassword } = {}) {
+async function importFromJson(db, accounts, data, { orgName, ownerEmail, ownerName = '', ownerPassword, platformAdmin = false } = {}) {
   if (!orgName) throw new AccountError('informe o nome da organização');
   if (!ownerEmail) throw new AccountError('informe o e-mail do dono');
 
   const org = await accounts.createOrganization({ name: orgName });
 
-  // senha: a do painel atual (mesmo formato scrypt) > a informada > "admin" com troca obrigatória
-  let passwordHash = null;
-  let mustChangePassword = false;
-  if (data.auth?.passwordHash && data.auth?.salt) {
+  // senha: a informada > a do painel atual (mesmo formato scrypt) > "admin1234" com troca obrigatória
+  let passwordHash;
+  if (!ownerPassword && data.auth?.passwordHash && data.auth?.salt) {
     passwordHash = `scrypt$${data.auth.salt}$${data.auth.passwordHash}`;
   }
+  const mustChangePassword = !ownerPassword && !passwordHash;
   const owner = await accounts.createUser({
     email: ownerEmail,
     name: ownerName,
     password: ownerPassword || 'admin1234',
-    passwordHash: passwordHash || undefined,
-    mustChangePassword: !passwordHash && !ownerPassword ? (mustChangePassword = true) : false
+    passwordHash,
+    mustChangePassword,
+    platformAdmin
   });
   await accounts.setMembership(org.id, owner.id, 'owner');
 
@@ -109,4 +112,19 @@ async function importFromJson(db, accounts, data, { orgName, ownerEmail, ownerNa
   return { org, owner, mustChangePassword, counts };
 }
 
-module.exports = { importFromJson };
+// Os registros de exibição (JSONL por dia) passam a ficar numa pasta por organização.
+// Copia (não move): a instalação antiga continua com os dela. Devolve quantos arquivos copiou.
+function copyLegacyLogs(logsDir, orgId) {
+  const dest = path.join(logsDir, orgId);
+  fs.mkdirSync(dest, { recursive: true });
+  let n = 0;
+  for (const f of fs.existsSync(logsDir) ? fs.readdirSync(logsDir) : []) {
+    if (!/^plays-\d{4}-\d{2}-\d{2}\.jsonl$/.test(f)) continue;
+    const target = path.join(dest, f);
+    if (!fs.existsSync(target)) fs.copyFileSync(path.join(logsDir, f), target);
+    n++;
+  }
+  return n;
+}
+
+module.exports = { importFromJson, copyLegacyLogs };

@@ -14,8 +14,22 @@ const path = require('path');
 const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// No .exe (pkg), código dentro do executável não pode usar import() dinâmico, e o PGlite usa
+// internamente. Por isso ele vai numa pasta "pglite" ao lado do .exe (como o ffmpeg) e é
+// carregado do disco, pelo carregador normal do Node.
+function loadPglite() {
+  if (process.pkg) {
+    const dir = path.join(path.dirname(process.execPath), 'pglite');
+    if (!fs.existsSync(path.join(dir, 'package.json'))) {
+      throw new Error(`banco embutido não encontrado em ${dir} — distribua a pasta dist inteira`);
+    }
+    return require(path.join(dir, 'dist', 'index.cjs'));
+  }
+  return require('@electric-sql/pglite');
+}
+
 async function openPglite(dataDir) {
-  const { PGlite } = await import('@electric-sql/pglite');
+  const { PGlite } = loadPglite();
   const pg = dataDir ? await PGlite.create(dataDir) : await PGlite.create();
   return {
     kind: 'pglite',

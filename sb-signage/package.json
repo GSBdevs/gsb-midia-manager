@@ -14,6 +14,7 @@
   "pkg": {
     "assets": [
       "public/**/*",
+      "server/db/migrations/*.sql",
       "node_modules/socket.io/client-dist/*"
     ]
   },

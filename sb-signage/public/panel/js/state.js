@@ -53,6 +53,11 @@ export function patchDeviceStatus({ id, online, lastSeenAt, status }) {
   return true;
 }
 
+// ---------- acesso ----------
+// O servidor é quem garante; aqui só se escondem ações que o papel não pode fazer.
+export const can = (permission) => !!state.me?.permissions?.includes(permission);
+export const ROLE_LABELS = { owner: 'Dono', admin: 'Administrador', editor: 'Editor', viewer: 'Visualizador' };
+
 // ---------- consultas ----------
 export const mediaById = (id) => state.media.find((m) => m.id === id);
 export const playlistById = (id) => state.playlists.find((p) => p.id === id);

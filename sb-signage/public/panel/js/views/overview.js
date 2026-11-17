@@ -13,9 +13,6 @@ function kpi(label, iconName, value, foot, meter) {
 
 function attentionItems() {
   const items = [];
-  if (state.me?.defaultPassword) {
-    items.push({ kind: 'warn', icon: 'key-round', text: 'Senha padrão em uso', href: '#settings', cta: 'Trocar' });
-  }
   for (const dev of state.devices) {
     for (const issue of deviceIssues(dev)) {
       if (issue.kind === 'info' && issue.text.startsWith('baixando')) continue;

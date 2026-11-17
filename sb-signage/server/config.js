@@ -39,8 +39,9 @@ function loadConfig(env = process.env) {
 
   return {
     port: int(env.PORT, 4000, { min: 0, max: 65535 }),
-    adminPassword: env.ADMIN_PASSWORD || 'admin',
     dataDir: env.DATA_DIR || path.join(baseDir, 'data'),
+    // PostgreSQL externo (nuvem). Vazio: banco embutido (PGlite) em DATA_DIR/pg, sem instalar nada.
+    databaseUrl: env.DATABASE_URL || '',
     // instaladores dos players (ex.: SBSignagePlayer-Setup.exe), baixados pelas telas em /downloads
     downloadsDir: env.DOWNLOADS_DIR || path.join(baseDir, 'downloads'),
     maxUploadMB: int(env.MAX_UPLOAD_MB, 2048, { min: 1 }),

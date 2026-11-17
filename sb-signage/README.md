@@ -12,7 +12,7 @@ npm install
 npm start
 ```
 
-- **Painel**: `http://localhost:4000/` — senha inicial `admin` (troque em **Configurações → Senha**)
+- **Painel**: `http://localhost:4000/` — no **primeiro acesso** o painel pede o nome da empresa e cria a conta do administrador (e-mail e senha). Se houver dados da versão anterior (`data.json`), ele oferece trazê-los junto, sem parear as telas de novo.
 - **Player**: `http://<IP-da-máquina>:4000/player` em qualquer navegador, ou um app instalado, que dispensa navegador (em fase de testes): [Windows](windows-player/README.md) e [Android](android-player/README.md). Os instaladores ficam em `http://<IP>:4000/downloads/`.
 
 **Primeiro teste com dois computadores:** [TESTE-RAPIDO.md](TESTE-RAPIDO.md).
@@ -24,8 +24,8 @@ npm start
 | Variável | Padrão | Descrição |
 |---|---|---|
 | `PORT` | `4000` | Porta do servidor |
-| `ADMIN_PASSWORD` | `admin` | Senha inicial. Depois de trocada no painel, a do painel vale |
-| `DATA_DIR` | `./data` (ou ao lado do `.exe`) | Banco JSON, mídia, logs |
+| `DATA_DIR` | `./data` (ou ao lado do `.exe`) | Banco embutido (`pg/`), mídia, logs |
+| `DATABASE_URL` | vazio | PostgreSQL externo (`postgres://usuario:senha@host:5432/banco`). Vazio = banco embutido (PGlite), sem instalar nada |
 | `SIGNAGE_TZ` | `America/Sao_Paulo` | Fuso da agenda, da energia e dos relatórios — **independe do fuso do servidor** |
 | `TRUST_PROXY` | desligado | Nº de proxies na frente (ex.: `1` para Cloudflare Tunnel/nginx). Desligado = IP do socket, não forjável |
 | `MAX_UPLOAD_MB` | `2048` | Tamanho máximo por arquivo |
@@ -43,11 +43,12 @@ npm start
 
 ## Segurança
 
-- Senha comparada em tempo constante; troca de senha pelo painel (hash scrypt) encerra as outras sessões.
+- Login por e-mail; senhas com hash scrypt, comparadas em tempo constante; senha provisória exige troca antes de qualquer ação.
+- Organizações (clientes) isoladas no próprio banco (RLS): uma consulta de um cliente nunca devolve dados de outro.
+- Papéis por organização (dono, administrador, editor, visualizador) verificados no servidor; ações que alteram dados vão para o registro de auditoria.
 - Sessões expiram e o logout revoga no servidor; credenciais de sessão e de tela ficam no disco **só como hash**.
 - Rate limit de login e de geração de códigos por IP; `TRUST_PROXY` controla quando confiar em `X-Forwarded-For`.
 - CSP no painel e no player; mídia servida em *sandbox* (um SVG com script não executa se aberto direto).
-- `data.json` com backup automático; arquivo corrompido vai para quarentena em vez de ser sobrescrito.
 
 ## Exportar como .exe (sem Electron)
 
@@ -65,7 +66,7 @@ O player só precisa de uma URL alcançável:
 1. **VPS/nuvem** com o `Dockerfile` incluído:
    ```bash
    docker build -t sb-signage .
-   docker run -d -p 4000:4000 -v sb-data:/data -e ADMIN_PASSWORD=suaSenha sb-signage
+   docker run -d -p 4000:4000 -v sb-data:/data sb-signage   # + -e DATABASE_URL=... para PostgreSQL externo
    ```
    A imagem já vem com `TRUST_PROXY=1` (PaaS sempre tem proxy na frente). Exposto direto, sem proxy, use `-e TRUST_PROXY=0`.
 2. **Cloudflare Tunnel** (`cloudflared tunnel --url http://localhost:4000`) — HTTPS sem abrir porta; rode com `TRUST_PROXY=1`.

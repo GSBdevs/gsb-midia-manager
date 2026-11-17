@@ -146,16 +146,68 @@ function createAccounts(db) {
     }
     const orgs = (await organizationsOf(user.id)).filter((o) => o.status === 'active');
     if (!orgs.length && !user.is_platform_admin) throw new AccountError('usuário sem acesso a nenhuma organização', 403);
-    const token = newToken();
-    const now = Date.now();
-    await db.system(async (tx) => {
-      await tx.query(
-        'INSERT INTO user_sessions (token_hash, user_id, org_id, expires_at) VALUES ($1, $2, $3, $4)',
-        [hashToken(token), user.id, orgs[0]?.id || null, new Date(now + SESSION_MAX_MS)]
-      );
-      await tx.query('UPDATE users SET last_login_at = now() WHERE id = $1', [user.id]);
-    });
+    const firstOrg = orgs[0]?.id || (user.is_platform_admin ? (await allOrganizations())[0]?.id : null) || null;
+    const token = await createSession(user.id, firstOrg);
+    await db.system((tx) => tx.query('UPDATE users SET last_login_at = now() WHERE id = $1', [user.id]));
     return { token, mustChangePassword: user.must_change_password, organizations: orgs };
+  }
+
+  async function createSession(userId, orgId = null) {
+    const token = newToken();
+    await db.system((tx) => tx.query(
+      'INSERT INTO user_sessions (token_hash, user_id, org_id, expires_at) VALUES ($1, $2, $3, $4)',
+      [hashToken(token), userId, orgId, new Date(Date.now() + SESSION_MAX_MS)]
+    ));
+    return token;
+  }
+
+  /** Todas as organizações (console da GrupoSB). */
+  async function allOrganizations() {
+    return db.system(async (tx) => (await tx.query(
+      "SELECT id, name, slug, status, 'owner' AS role FROM organizations ORDER BY name"
+    )).rows);
+  }
+
+  /** Organizações que o usuário pode abrir: as dele, ou todas para a equipe GrupoSB. */
+  async function accessibleOrganizations(user) {
+    return user.platformAdmin ? allOrganizations() : (await organizationsOf(user.id)).filter((o) => o.status === 'active');
+  }
+
+  async function countUsers() {
+    return db.system(async (tx) => Number((await tx.query('SELECT count(*)::int AS n FROM users')).rows[0].n));
+  }
+
+  async function findUserByEmail(email) {
+    return db.system(async (tx) => (await tx.query(
+      'SELECT id, email, name, is_platform_admin, disabled FROM users WHERE email = $1', [normalizeEmail(email)]
+    )).rows[0] || null);
+  }
+
+  /** Papel do usuário numa organização (null = não é membro). */
+  async function roleIn(orgId, userId) {
+    return db.system(async (tx) => (await tx.query(
+      'SELECT role FROM memberships WHERE org_id = $1 AND user_id = $2', [orgId, userId]
+    )).rows[0]?.role || null);
+  }
+
+  async function membershipCount(userId) {
+    return db.system(async (tx) => Number((await tx.query(
+      'SELECT count(*)::int AS n FROM memberships WHERE user_id = $1', [userId]
+    )).rows[0].n));
+  }
+
+  /** Senha definida por um administrador (provisória): exige troca e derruba as sessões. */
+  async function setPassword(userId, password, { mustChange = true } = {}) {
+    if (String(password || '').length < MIN_PASSWORD) throw new AccountError(`a senha precisa de ao menos ${MIN_PASSWORD} caracteres`);
+    await db.system(async (tx) => {
+      await tx.query('UPDATE users SET password_hash = $1, must_change_password = $2 WHERE id = $3',
+        [hashPassword(password), mustChange, userId]);
+      await tx.query('DELETE FROM user_sessions WHERE user_id = $1', [userId]);
+    });
+  }
+
+  async function updateProfile(userId, { name }) {
+    await db.system((tx) => tx.query('UPDATE users SET name = $1 WHERE id = $2', [String(name || '').trim().slice(0, 80), userId]));
   }
 
   /**
@@ -198,8 +250,8 @@ function createAccounts(db) {
   async function switchOrganization(token, orgId) {
     const session = await validateSession(token);
     if (!session) throw new AccountError('não autenticado', 401);
-    const member = (await organizationsOf(session.user.id)).find((o) => o.id === orgId && o.status === 'active');
-    if (!member && !session.user.platformAdmin) throw new AccountError('sem acesso a essa organização', 403);
+    const member = (await accessibleOrganizations(session.user)).find((o) => o.id === orgId && o.status === 'active');
+    if (!member) throw new AccountError('sem acesso a essa organização', 403);
     await db.system((tx) => tx.query('UPDATE user_sessions SET org_id = $1 WHERE id = $2', [orgId, session.sessionId]));
     return validateSession(token);
   }
@@ -227,6 +279,8 @@ function createAccounts(db) {
 
   return {
     createOrganization, createUser, setMembership, removeMembership, listMembers, organizationsOf,
+    allOrganizations, accessibleOrganizations, countUsers, findUserByEmail, roleIn, membershipCount,
+    setPassword, updateProfile, createSession,
     login, validateSession, switchOrganization, logout, changePassword, audit
   };
 }

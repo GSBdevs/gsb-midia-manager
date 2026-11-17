@@ -14,7 +14,8 @@ const ICONS = [
   'refresh-cw', 'scan-eye', 'eraser', 'sun', 'moon', 'sun-moon', 'rotate-cw', 'volume-2', 'volume-x', 'power',
   'clock', 'wifi', 'wifi-off', 'circle-alert', 'info', 'eye', 'download', 'link', 'palette', 'key-round',
   'server', 'menu', 'list', 'layout-grid', 'hard-drive', 'triangle-alert', 'save', 'arrow-left', 'tv',
-  'square-play', 'type', 'user-round', 'loader-circle', 'external-link', 'circle-check', 'circle-x'
+  'square-play', 'type', 'user-round', 'loader-circle', 'external-link', 'circle-check', 'circle-x',
+  'users', 'user-plus', 'building-2', 'chevrons-up-down', 'shield'
 ];
 
 function iconInner(name) {

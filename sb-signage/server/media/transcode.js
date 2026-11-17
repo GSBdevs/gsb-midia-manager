@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { runFfmpeg, probe, displayDims, jpegOrientation, EXIF_FILTERS, killAll } = require('./ffmpeg');
+const repo = require('../repo');
 
 const BOX_LONG = 1920;
 const BOX_SHORT = 1080;
@@ -63,33 +64,35 @@ function frameRate(stream) {
 }
 
 class Transcoder {
-  constructor({ store, dirs, onUpdate, hlsMinSeconds = 600 }) {
-    this.store = store;
+  // A fila guarda { orgId, id }: a mídia é lida e gravada no banco dentro da organização dela.
+  constructor({ db, dirs, onUpdate, hlsMinSeconds = 600 }) {
+    this.db = db;
     this.dirs = dirs;
-    this.onUpdate = onUpdate; // (media) => void — notifica painel/players
+    this.onUpdate = onUpdate; // (orgId, media) => void — notifica painel/players
     this.hlsMinSeconds = hlsMinSeconds;
     this.queue = [];
     this.running = false;
     this.closed = false;
   }
 
-  enqueue(mediaId) {
+  enqueue(orgId, mediaId) {
     if (this.closed) return;
-    this.queue.push(mediaId);
+    this.queue.push({ orgId, id: mediaId });
     this.next();
   }
 
-  // Reprocessa itens que ficaram pendurados numa queda do servidor.
-  recover() {
-    for (const m of this.store.data.media) {
-      if (m.status === 'processing') this.enqueue(m.id);
-    }
+  // Reprocessa itens que ficaram pendurados numa queda do servidor (de todas as organizações).
+  async recover() {
+    const rows = await this.db.system(async (tx) => (await tx.query(
+      "SELECT id, org_id FROM media WHERE status = 'processing' ORDER BY created_at"
+    )).rows);
+    for (const r of rows) this.enqueue(r.org_id, r.id);
   }
 
   // Tira da fila um item ainda não iniciado. true = cancelado (o chamador limpa os arquivos).
   cancel(mediaId) {
     const before = this.queue.length;
-    this.queue = this.queue.filter((id) => id !== mediaId);
+    this.queue = this.queue.filter((q) => q.id !== mediaId);
     return this.queue.length !== before;
   }
 
@@ -105,30 +108,39 @@ class Transcoder {
 
   async next() {
     if (this.running || this.closed) return;
-    const id = this.queue.shift();
-    if (!id) return;
+    const job = this.queue.shift();
+    if (!job) return;
     this.running = true;
-    const media = this.store.data.media.find((m) => m.id === id);
-    if (media) {
-      try {
-        await this.process(media);
-        media.status = 'ready';
-        media.error = null;
-      } catch (err) {
-        if (!this.closed) console.error(`[transcode] falha em ${media.name}:`, err.message);
-        media.status = 'failed';
-        media.error = err.message;
-      }
-      if (this.store.data.media.includes(media)) {
-        this.store.save();
-        this.onUpdate(media);
-      } else {
-        // excluída durante o processamento: nada de arquivo órfão no disco
-        this.removeFiles(media);
-      }
+    try {
+      await this.run(job);
+    } catch (err) {
+      if (!this.closed) console.error('[transcode]', err.message);
     }
     this.running = false;
     this.next();
+  }
+
+  async run({ orgId, id }) {
+    const media = await this.db.withOrg(orgId, (tx) => repo.getMedia(tx, id));
+    if (!media) return;
+    try {
+      await this.process(media);
+      media.status = 'ready';
+      media.error = null;
+    } catch (err) {
+      if (!this.closed) console.error(`[transcode] falha em ${media.name}:`, err.message);
+      media.status = 'failed';
+      media.error = err.message;
+    }
+    if (this.closed) return; // desligando: fica 'processing' e é retomada no próximo início
+    const saved = await this.db.withOrg(orgId, async (tx) => {
+      const current = await repo.getMedia(tx, id);
+      if (!current) return false;
+      media.name = current.name; // renomeada durante a conversão: vale o nome novo
+      return repo.updateMedia(tx, media);
+    });
+    if (saved) this.onUpdate(orgId, media);
+    else this.removeFiles(media); // excluída durante o processamento: nada de arquivo órfão no disco
   }
 
   removeFiles(media) {

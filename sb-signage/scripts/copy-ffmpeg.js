@@ -23,4 +23,15 @@ const readmeSrc = path.join(ffmpegDir, 'ffmpeg.exe.README');
 if (fs.existsSync(readmeSrc)) fs.copyFileSync(readmeSrc, path.join(dist, 'FFMPEG-BUILD-INFO.txt'));
 fs.copyFileSync(path.join(root, 'THIRD_PARTY_NOTICES.md'), path.join(dist, 'THIRD_PARTY_NOTICES.md'));
 
-console.log('ffmpeg/ffprobe, licença GPL e avisos de terceiros copiados para dist/.');
+// Banco embutido (PGlite, Apache-2.0): usa import() dinâmico internamente, o que o código de
+// dentro do .exe não pode fazer; vai numa pasta ao lado e é carregado do disco (server/db/index.js).
+// As extensões opcionais do PostgreSQL (*.tar.gz) não são usadas e ficam de fora.
+const pgliteSrc = path.join(root, 'node_modules', '@electric-sql', 'pglite'); // o pacote não exporta package.json
+const pgliteDest = path.join(dist, 'pglite');
+fs.rmSync(pgliteDest, { recursive: true, force: true });
+fs.cpSync(pgliteSrc, pgliteDest, {
+  recursive: true,
+  filter: (src) => !src.endsWith('.tar.gz') && !src.endsWith('.map') && !src.endsWith('.d.ts') && !src.endsWith('.d.cts')
+});
+
+console.log('ffmpeg/ffprobe, banco embutido (pglite/), licença GPL e avisos de terceiros copiados para dist/.');

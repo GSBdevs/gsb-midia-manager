@@ -6,7 +6,7 @@ const { createServer } = require('./app');
 
 async function main() {
   const config = loadConfig();
-  const instance = createServer(config);
+  const instance = await createServer(config);
   const port = await instance.listen();
 
   // todas as placas de rede: o primeiro IP nem sempre é o do Wi-Fi (Hyper-V, VPN, emulador)
@@ -20,9 +20,10 @@ async function main() {
   const installers = fs.existsSync(config.downloadsDir) ? fs.readdirSync(config.downloadsDir).filter((f) => f.endsWith('.exe') || f.endsWith('.apk')) : [];
   for (const f of installers) console.log(`  Baixar : http://${ips[0]?.address || 'localhost'}:${port}/downloads/${f}`);
   console.log(`  Fuso   : ${config.timezone}`);
-  if (instance.store.data.auth?.passwordHash) console.log('  Senha  : definida pelo painel');
-  else if (config.adminPassword === 'admin') console.log('  Senha  : admin — TROQUE no painel (Configurações) ou via ADMIN_PASSWORD');
-  else console.log('  Senha  : definida via ADMIN_PASSWORD');
+  console.log(`  Banco  : ${instance.db.kind === 'pglite' ? `embutido (${require('path').join(config.dataDir, 'pg')})` : 'PostgreSQL (DATABASE_URL)'}`);
+  if ((await instance.accounts.countUsers()) === 0) {
+    console.log('  Acesso : PRIMEIRO ACESSO — abra o painel para criar a conta do administrador');
+  }
 
   let closing = false;
   const shutdown = async () => {

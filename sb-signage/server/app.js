@@ -4,7 +4,8 @@ const fs = require('fs');
 const http = require('http');
 const express = require('express');
 
-const { Store } = require('./store');
+const { openDatabase } = require('./db');
+const { createAccounts } = require('./accounts');
 const { createAuth } = require('./auth');
 const { attachRealtime } = require('./realtime');
 const { Transcoder } = require('./media/transcode');
@@ -56,7 +57,30 @@ function securityHeaders(kind, mediaOrigin) {
   };
 }
 
-function createServer(config) {
+// Express 4 não captura erros de handlers assíncronos: cada handler (inclusive os que vêm em
+// listas, como os de auth.allow) passa a encaminhar a rejeição para o tratador de erros.
+function asyncRouter(router) {
+  const wrap = (h) => (typeof h !== 'function' || h.length === 4 ? h : (req, res, next) => {
+    try {
+      const r = h(req, res, next);
+      if (r && typeof r.then === 'function') r.catch(next);
+    } catch (err) {
+      next(err);
+    }
+  });
+  for (const method of ['get', 'post', 'put', 'patch', 'delete']) {
+    const original = router[method].bind(router);
+    router[method] = (route, ...handlers) => original(route, ...handlers.flat(Infinity).map(wrap));
+  }
+  return router;
+}
+
+/**
+ * Monta o servidor sem iniciá-lo (testável). Abre o banco: DATABASE_URL, ou PGlite em DATA_DIR/pg.
+ * @param config  ver config.js
+ * @param options.db  banco já aberto (testes); senão é aberto aqui e fechado em close()
+ */
+async function createServer(config, { db: givenDb } = {}) {
   const dirs = {
     original: path.join(config.dataDir, 'original'),
     processed: path.join(config.dataDir, 'processed'),
@@ -67,22 +91,23 @@ function createServer(config) {
   };
   for (const dir of Object.values(dirs)) fs.mkdirSync(dir, { recursive: true });
 
-  const store = new Store(path.join(config.dataDir, 'data.json'), { sessionMaxDays: config.sessionMaxDays });
-  store.save(); // grava a migração de esquema, se houve
+  const db = givenDb || await openDatabase({ databaseUrl: config.databaseUrl, dataDir: config.dataDir });
+  const accounts = createAccounts(db);
 
   const app = express();
   const server = http.createServer(app);
-  const auth = createAuth({ store, config });
-  const realtime = attachRealtime(server, { store, auth });
+  let auth = null;
+  const realtime = attachRealtime(server, { db, accounts, getAuth: () => auth });
   const { notify } = realtime;
+  auth = createAuth({ db, accounts, notify });
 
   const transcoder = new Transcoder({
-    store,
+    db,
     dirs,
     hlsMinSeconds: config.hlsMinMinutes * 60,
-    onUpdate: (media) => {
-      notify.panel('media-changed');
-      if (media.status === 'ready') notify.sync(); // mídia pronta pode entrar em manifestos
+    onUpdate: (orgId, media) => {
+      notify.panel(orgId, 'media-changed');
+      if (media.status === 'ready') notify.sync(orgId); // mídia pronta pode entrar em manifestos
     }
   });
 
@@ -91,26 +116,16 @@ function createServer(config) {
   app.set('trust proxy', config.trustProxy);
   app.use(express.json({ limit: '1mb' }));
 
-  const requireAuth = (req, res, next) => {
-    if (auth.validateSession(req.headers['x-auth-token'])) return next();
-    res.status(401).json({ error: 'não autenticado' });
-  };
-  const requireDevice = (req, res, next) => {
-    const device = auth.findDevice(req.headers['x-device-token']);
-    if (!device) return res.status(401).json({ error: 'tela não autorizada' });
-    req.device = device;
-    next();
-  };
-
   const limiters = [];
-  const ctx = { store, dirs, config, notify, transcoder, auth, requireAuth, requireDevice, limiters };
-  const api = express.Router();
+  const ctx = { db, accounts, dirs, config, notify, transcoder, auth, limiters };
+  const api = asyncRouter(express.Router());
   api.use((_req, res, next) => {
     res.set('Cache-Control', 'no-store');
     next();
   });
   for (const register of [
     require('./routes/session'),
+    require('./routes/users'),
     require('./routes/devices'),
     require('./routes/content'),
     require('./routes/player'),
@@ -150,20 +165,24 @@ function createServer(config) {
       return res.status(400).json({ error: 'envie no máximo 20 arquivos por vez' });
     }
     if (status >= 500) console.error('[http]', err);
-    res.status(status).json({ error: status >= 500 ? 'erro interno' : err.message });
+    res.status(status).json({
+      error: status >= 500 ? 'erro interno' : err.message,
+      ...(err.mustChangePassword ? { mustChangePassword: true } : {})
+    });
   });
 
   return {
     app,
     server,
-    store,
+    db,
+    accounts,
     transcoder,
     notify,
     dirs,
     listen(port = config.port, host) {
       return new Promise((resolve) => {
         server.listen(port, host, () => {
-          transcoder.recover();
+          transcoder.recover().catch((err) => console.error('[transcode] retomada falhou:', err.message));
           resolve(server.address().port);
         });
       });
@@ -173,7 +192,7 @@ function createServer(config) {
       for (const l of limiters) l.close();
       realtime.close();
       await new Promise((resolve) => server.close(() => resolve()));
-      store.flush();
+      if (!givenDb) await db.close();
     }
   };
 }

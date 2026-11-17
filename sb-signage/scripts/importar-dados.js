@@ -8,9 +8,10 @@
 const fs = require('fs');
 const path = require('path');
 const { loadConfig } = require('../server/config');
+const { migrate } = require('../server/store');
 const { openDatabase } = require('../server/db');
 const { createAccounts } = require('../server/accounts');
-const { importFromJson } = require('../server/db/import-json');
+const { importFromJson, copyLegacyLogs } = require('../server/db/import-json');
 
 const arg = (name) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -21,7 +22,7 @@ async function main() {
   const config = loadConfig();
   const source = path.join(config.dataDir, 'data.json');
   if (!fs.existsSync(source)) throw new Error(`não encontrei ${source}`);
-  const data = JSON.parse(fs.readFileSync(source, 'utf8'));
+  const data = migrate(JSON.parse(fs.readFileSync(source, 'utf8'))); // v1 → formato atual
 
   const destino = arg('destino');
   const db = await openDatabase({
@@ -34,11 +35,17 @@ async function main() {
       orgName: arg('org'),
       ownerEmail: arg('email'),
       ownerName: arg('nome') || '',
-      ownerPassword: arg('senha')
+      ownerPassword: arg('senha'),
+      // a primeira conta da instalação administra a plataforma (cria outras organizações)
+      platformAdmin: (await accounts.countUsers()) === 0
     });
     console.log(`Organização "${result.org.name}" criada (${result.org.slug}).`);
     console.log(`Dono: ${result.owner.email}${result.mustChangePassword ? ' — senha provisória admin1234, troca obrigatória no 1º acesso' : ''}`);
     for (const [k, v] of Object.entries(result.counts)) console.log(`  ${k.padEnd(10)} ${v}`);
+    if (!destino) {
+      const logs = copyLegacyLogs(path.join(config.dataDir, 'logs'), result.org.id);
+      console.log(`  ${'relatórios'.padEnd(10)} ${logs} dia(s) copiados para logs/${result.org.id}`);
+    }
     console.log(`Banco: ${db.kind === 'pglite' ? path.join(destino || config.dataDir, 'pg') : 'DATABASE_URL'}`);
   } finally {
     await db.close();

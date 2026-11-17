@@ -204,7 +204,7 @@ test('banco em disco: reabrir não reaplica migrações nem perde dados', async 
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-db-'));
   try {
     let db = await openDatabase({ dataDir: dir });
-    assert.deepEqual(db.applied, ['001_multiusuario.sql']);
+    assert.deepEqual(db.applied, ['001_multiusuario.sql', '002_rotas.sql']);
     await createAccounts(db).createOrganization({ name: 'Persistente' });
     await db.close();
     db = await openDatabase({ dataDir: dir });

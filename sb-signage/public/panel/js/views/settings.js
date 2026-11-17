@@ -1,6 +1,6 @@
 // Configurações: aparência/marca (com prévia), conta e informações do sistema.
 import { api, session, uploadWithProgress } from '../api.js';
-import { state, load } from '../state.js';
+import { state, load, can } from '../state.js';
 import { esc, icon, toast, toastError, applyAccent, applyTheme, applyDensity, brandHtml, fmtSize, plural } from '../ui.js';
 
 const SWATCHES = ['#ffd60a', '#ff7a00', '#ff3b5c', '#e040fb', '#7c5cff', '#2f80ed', '#00b8d9', '#00c853', '#111827'];
@@ -90,8 +90,8 @@ function previewCard() {
 
 function accountCard() {
   return `<section class="card">
-    <div class="card-head"><h2>${icon('key-round')} Senha do administrador</h2>
-      ${state.me?.defaultPassword ? '<span class="badge badge-warn">senha padrão</span>' : '<span class="badge badge-ok">personalizada</span>'}</div>
+    <div class="card-head"><h2>${icon('key-round')} Minha senha</h2>
+      <span class="badge">${esc(state.me?.user?.email || '')}</span></div>
     <form class="card-body form-stack" data-form="password">
       <div class="form-grid">
         <label class="field"><span>Senha atual</span><input name="current" type="password" autocomplete="current-password" required /></label>
@@ -99,7 +99,7 @@ function accountCard() {
         <label class="field"><span>Confirmar nova senha</span><input name="confirm" type="password" minlength="8" autocomplete="new-password" required /></label>
       </div>
       <p class="error-text" data-pw-error hidden></p>
-      <div class="row"><span class="grow subtle small">Mínimo de 8 caracteres. Todas as outras sessões abertas são encerradas.</span>
+      <div class="row"><span class="grow subtle small">Mínimo de 8 caracteres. Suas outras sessões abertas são encerradas.</span>
         <button class="btn btn-primary" type="submit">Trocar senha</button></div>
     </form>
   </section>`;
@@ -123,7 +123,7 @@ function systemCard() {
 
 export default {
   title: 'Configurações',
-  subtitle: () => 'Marca, aparência, acesso e sistema',
+  subtitle: () => (can('settings.write') ? 'Marca, aparência, acesso e sistema' : 'Sua conta e informações do sistema'),
   // sem 'overview': ela recarrega a cada status de tela e redesenharia o formulário enquanto você digita
   deps: ['me'],
   isDirty: () => !!dirty(),
@@ -234,11 +234,12 @@ export default {
     if (!draft) startDraft();
     // senhas digitadas sobrevivem a redesenhos (troca de cor, tema etc.)
     const typed = Object.fromEntries([...root.querySelectorAll('[data-form="password"] input')].map((i) => [i.name, i.value]));
-    root.innerHTML = `
+    // aparência é da organização: só quem pode alterá-la vê o editor
+    root.innerHTML = can('settings.write') ? `
       <div class="settings-grid">
         <div class="stack">${appearanceCard()}${accountCard()}${systemCard()}</div>
         <div class="stack" style="position:sticky;top:80px">${previewCard()}</div>
-      </div>`;
+      </div>` : `<div class="stack" style="max-width:760px">${accountCard()}${systemCard()}</div>`;
     for (const [name, value] of Object.entries(typed)) {
       const input = root.querySelector(`[data-form="password"] [name="${name}"]`);
       if (input) input.value = value;

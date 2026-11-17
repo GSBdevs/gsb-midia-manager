@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const { DATE_RE } = require('../util');
 const { zonedParts } = require('../time');
+const { logsDirOf } = require('./player');
+const repo = require('../repo');
 
 const MAX_RANGE_DAYS = 92;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -17,13 +19,13 @@ function datesBetween(from, to) {
   return out;
 }
 
-module.exports = function reportRoutes(router, { store, dirs, config, transcoder, requireAuth }) {
-  const d = store.data;
+module.exports = function reportRoutes(router, { db, dirs, config, transcoder, auth }) {
+  const read = auth.allow('content.read');
   const today = () => zonedParts(new Date(), config.timezone).date;
 
-  function readLog(date, deviceId) {
+  function readLog(orgId, date, deviceId) {
     try {
-      return fs.readFileSync(path.join(dirs.logs, `plays-${date}.jsonl`), 'utf8')
+      return fs.readFileSync(path.join(logsDirOf(dirs, orgId), `plays-${date}.jsonl`), 'utf8')
         .split('\n').filter(Boolean)
         .map((l) => { try { return JSON.parse(l); } catch { return null; } })
         .filter((e) => e && (!deviceId || e.deviceId === deviceId));
@@ -40,7 +42,7 @@ module.exports = function reportRoutes(router, { store, dirs, config, transcoder
     return { from, to, dates: datesBetween(from, to) };
   }
 
-  router.get('/logs', requireAuth, (req, res) => {
+  router.get('/logs', read, (req, res) => {
     const { from, to, dates } = range(req.query);
     const deviceId = typeof req.query.deviceId === 'string' ? req.query.deviceId : '';
     const agg = new Map(); // deviceId|mediaId -> resumo
@@ -48,7 +50,7 @@ module.exports = function reportRoutes(router, { store, dirs, config, transcoder
     let totalPlays = 0;
     let totalSeconds = 0;
     for (const date of dates) {
-      const entries = readLog(date, deviceId);
+      const entries = readLog(req.orgId, date, deviceId);
       let daySeconds = 0;
       for (const e of entries) {
         const key = `${e.deviceId}|${e.mediaId}`;
@@ -72,14 +74,14 @@ module.exports = function reportRoutes(router, { store, dirs, config, transcoder
     });
   });
 
-  router.get('/logs.csv', requireAuth, (req, res) => {
+  router.get('/logs.csv', read, (req, res) => {
     const { from, to, dates } = range(req.query);
     const deviceId = typeof req.query.deviceId === 'string' ? req.query.deviceId : '';
     const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const fmt = new Intl.DateTimeFormat('sv-SE', { timeZone: config.timezone, dateStyle: 'short', timeStyle: 'medium' });
     const rows = [];
     for (const date of dates) {
-      for (const e of readLog(date, deviceId)) {
+      for (const e of readLog(req.orgId, date, deviceId)) {
         rows.push([fmt.format(new Date(e.ts)), e.deviceName, e.name, e.dur].map(csvCell).join(';'));
       }
     }
@@ -91,9 +93,16 @@ module.exports = function reportRoutes(router, { store, dirs, config, transcoder
   });
 
   // Números para o painel inicial.
-  router.get('/overview', requireAuth, (_req, res) => {
+  router.get('/overview', read, async (req, res) => {
+    const d = await db.withOrg(req.orgId, async (tx) => ({
+      devices: await repo.listDevices(tx),
+      media: await repo.listMedia(tx),
+      playlists: await repo.listPlaylists(tx),
+      schedules: await repo.listSchedules(tx),
+      emergency: (await repo.getSettings(tx)).emergency
+    }));
     const media = d.media;
-    const todayLog = readLog(today());
+    const todayLog = readLog(req.orgId, today());
     res.json({
       devices: {
         total: d.devices.length,
