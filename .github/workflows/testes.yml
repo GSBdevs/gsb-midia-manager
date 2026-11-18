@@ -1,0 +1,34 @@
+# Roda testes e build a cada push na main e em pull requests.
+# Um X vermelho no GitHub (e e-mail) avisa na hora se algo quebrou.
+name: Testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: testes-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sb-signage
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Instalar pnpm 10
+        run: npm install -g pnpm@10
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: Testes
+        run: pnpm test
