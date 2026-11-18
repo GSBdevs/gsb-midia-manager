@@ -1,0 +1,7 @@
+nodeLinker: hoisted
+
+# Dependências autorizadas a rodar scripts de instalação (pnpm 10 bloqueia por padrão)
+onlyBuiltDependencies:
+  - electron
+  - esbuild
+  - ffmpeg-static
